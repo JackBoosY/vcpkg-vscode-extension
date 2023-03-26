@@ -1,6 +1,11 @@
-# vcpkg-tools README
+# vcpkg CMake Tools
 
 Vcpkg VSCode CMake extension.
+
+## Requirements
+
+- VSCode >= 1.76.0
+- CMake Tools extension >= 1.13.0
 
 ## Usage
 
@@ -32,17 +37,10 @@ Vcpkg VSCode CMake extension.
 2. Search vcpkg.
 3. Select `vcpkg: Use dynamic library`.
 
-
-## Requirements
-
-- VSCode >= 1.76.0
-- CMake Tools extension >= 1.13.0
-
 ## Known Issue
 
-## Release Notes
 
-Users appreciate release notes as you update your extension.
+## Release Notes
 
 ### 0.0.2
 
