@@ -13,6 +13,10 @@ Vcpkg VSCode CMake extension.
 
 Users appreciate release notes as you update your extension.
 
+### 0.0.2
+
+- Update logo
+
 ### 0.0.1
 
 - Add feature to enable/disable vcpkg.
