@@ -44,6 +44,7 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 ## Release Notes
 
 ### 0.0.3
+
 - Update document.
 
 ### 0.0.2
