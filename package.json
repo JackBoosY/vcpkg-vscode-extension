@@ -2,7 +2,7 @@
   "name": "vcpkg-cmake-tools",
   "displayName": "Vcpkg CMake Tools",
   "description": "Vcpkg VSCode extension to integrate vcpkg into VSCode",
-  "icon": "images/vcpkg-logo.svg",
+  "icon": "images/vcpkg-logo.png",
   "publisher": "JackBoosY",
   "license": "MIT",
   "version": "0.0.1",
