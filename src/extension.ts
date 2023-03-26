@@ -39,6 +39,9 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	// use dynamic lib
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.use_dynamic_lib', async() => await configMgr.useDynamicLib()));
+
+	// config changed event
+	disposables.push(vscode.workspace.onDidChangeConfiguration(async(event) => await configMgr.onConfigurationChanged(event)));
 }
 
 // This method is called when your extension is deactivated

@@ -5,7 +5,7 @@
   "icon": "images/vcpkg-logo.png",
   "publisher": "JackBoosY",
   "license": "MIT",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.76.0"
   },
@@ -108,12 +108,6 @@
           "description": "Installed Directory",
           "scope": "resource"
         },
-        "vcpkg.general.additionalOptions": {
-          "type": "string",
-          "default": "",
-          "description": "Addtional options",
-          "scope": "resource"
-        },
         "vcpkg.target.useStaticLib": {
           "type": "boolean",
           "default": false,
@@ -138,15 +132,15 @@
           "description": "Host triplet",
           "scope": "resource"
         },
-        "vcpkg.target.configuration": {
-          "type": "string",
-          "default": "Debug",
-          "description": "Vcpkg Configuration",
-          "scope": "resource",
-          "enum": [
-              "Debug",
-              "Release"
-          ]
+        "vcpkg.target.additionalOptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "title": "Vcpkg install options"
+          },
+          "default": [],
+          "description": "Additional vcpkg options",
+          "scope": "resource"
         }
       }
     }

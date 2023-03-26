@@ -1,6 +1,7 @@
 # vcpkg CMake Tools
 
 [Vcpkg VSCode CMake extension](https://marketplace.visualstudio.com/items?itemName=JackBoosY.vcpkg-cmake-tools) provides vcpkg integration in VSCode.
+
 It's still WIP, please help us to improve it in [github](https://github.com/JackBoosY/vcpkg-vscode-extension).
 
 ## Requirements
@@ -15,7 +16,9 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 1. Ctrl + Shift + P
 2. Search vcpkg.
 3. Select `vcpkg: Enable vcpkg`.
+
   a. Extension will automaticly enable vcpkg if you already set environment variable `VCPKG_ROOT` or already set vcpkg path in settings.
+  
   b. If environment variable `VCPKG_ROOT` is not set, please choose vcpkg root folder.
 4. Extension will select the triplet (dynamic) according to your system architecture, vcpkg toolchain will be added into cmake settings.
 
@@ -42,6 +45,10 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 
 ## Release Notes
+
+### 0.0.4
+
+- Support VCPKG_INSTALL_OPTIONS
 
 ### 0.0.3
 

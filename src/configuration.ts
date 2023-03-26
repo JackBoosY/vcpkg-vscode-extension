@@ -14,18 +14,18 @@ export class ConfigurationManager implements vscode.Disposable
     private _installDependenciesConfig = 'general.installDependencies';
     private _autoLinkConfig = 'general.autolink';
     private _installDirectoryConfig = 'general.installDirectory';
-    private _additionalOptionsConfig = 'general.additionalOptions';
+    private _additionalOptionsConfig = 'target.additionalOptions';
     private _useStaticLibConfig = 'target.useStaticLib';
     private _vcpkgUseDynamicCRTConfig = 'target.useDynamicCRT';
     private _targetTripletConfig = 'target.defaultTriplet';
     private _hostTripletConfig = 'target.hostTriplet';
-    private _vcpkgConfigurationConfig = 'target.configuration';
 
     private _cmakeOptionConfig = 'configureArgs';
     private _configConfigSettingConfig = 'configureSettings';
 
     private _vcpkgManifestModeConfig = 'VCPKG_MANIFEST_MODE';
     private _vcpkgTargetTripletConfig = 'VCPKG_TARGET_TRIPLET';
+    private _vcpkgInstallOptionsConfig = 'VCPKG_INSTALL_OPTIONS';
     private _cmakeOptionPrefix = '-D';
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
@@ -142,6 +142,11 @@ export class ConfigurationManager implements vscode.Disposable
         return newSettings;
     }
 
+    private isStaticLib(triplet : string)
+    {
+        return triplet?.endsWith('-static');
+    }
+
     private async addVcpkgToolchain(vcpkgRoot : string)
     {
         let cleanConfig = this.getCleanVcpkgToolchian();
@@ -160,16 +165,16 @@ export class ConfigurationManager implements vscode.Disposable
 
         if (isStatic)
         {
-            if (!currTriplet?.endsWith('-static'))
+            if (!this.isStaticLib(currTriplet as string))
             {
                 currTriplet += '-static';
             }
         }
         else
         {
-            if (currTriplet?.endsWith('-static'))
+            if (this.isStaticLib(currTriplet as string))
             {
-                currTriplet.substring(0, currTriplet.length - '-static'.length);
+                (currTriplet as string).substring(0, (currTriplet as string).length - '-static'.length);
             }
         }
 
@@ -199,6 +204,9 @@ export class ConfigurationManager implements vscode.Disposable
         
         this.updateCurrentTripletSetting();
         this.addVcpkgToolchain(vcpkgPath);
+
+        // disable manifest mode by default
+        this.disableManifest();
     }
 
     async enableVcpkg() {
@@ -350,6 +358,105 @@ export class ConfigurationManager implements vscode.Disposable
 
         this.logInfo('Set to dynamic triplet');
 		vscode.window.showInformationMessage('Now use dynamic library / triplet');
+    }
+
+    async onConfigurationChanged(event : vscode.ConfigurationChangeEvent)
+    {
+        this.logInfo('detect configuration changed.');
+        if (event.affectsConfiguration('vcpkg.' + this._enableVcpkgConfig))
+        {
+            this.logInfo('detect vcpkg enable configuration changed.');
+            if (workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig))
+            {
+                this.enableVcpkg();
+            }
+            else
+            {
+                this.disableVcpkg();
+            }
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._vcpkgPathConfig))
+        {
+            this.logInfo('detect vcpkg path configuration changed.');
+            this.disableVcpkg();
+            this.enableVcpkg();
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._useManifestConfig))
+        {
+            this.logInfo('detect vcpkg manifest configuration changed.');
+            if (workspace.getConfiguration('vcpkg').get<boolean>(this._useManifestConfig))
+            {
+                this.enableManifest();
+            }
+            else
+            {
+                this.disableManifest();
+            }
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._installDependenciesConfig))
+        {
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._autoLinkConfig))
+        {
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._installDirectoryConfig))
+        {
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._additionalOptionsConfig))
+        {
+            this.logInfo('detect vcpkg install option configuration changed.');
+            let extraOptCfgs = workspace.getConfiguration('vcpkg').get<Array<string>>(this._additionalOptionsConfig);
+            let extraOptions = this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig + '="';
+            if (extraOptCfgs !== undefined)
+            {
+                for (let curr in extraOptCfgs)
+                {
+                    extraOptions += extraOptCfgs[curr] + ';';
+
+                    this.logInfo('add extra vcpkg instal option: ' + extraOptCfgs[curr]);
+                }
+                
+            }
+
+            extraOptions += '"';
+
+            let cmakeConfigs = this.getAndCleanCMakeOptions(this._additionalOptionsConfig);
+            cmakeConfigs?.push(extraOptions);
+            
+            await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cmakeConfigs);
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._useStaticLibConfig))
+        {
+            this.logInfo('detect vcpkg static lib configuration changed.');
+            if (workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig))
+            {
+                this.useStaticLib();
+            }
+            else
+            {
+                this.useDynamicLib();
+            }
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._vcpkgUseDynamicCRTConfig))
+        {
+            if (process.platform === "win32")
+            {
+
+            }
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._targetTripletConfig))
+        {
+            this.logInfo('detect vcpkg target triplet configuration changed.');
+            let currSel = workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
+            if (this.isStaticLib(currSel as string))
+            {
+                this.useStaticLib();
+            }
+            else
+            {
+                this.useDynamicLib();
+            }
+        }
     }
 
     dispose(): void {
