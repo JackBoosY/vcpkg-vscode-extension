@@ -1,0 +1,178 @@
+{
+  "name": "vcpkg-cmake-tools",
+  "displayName": "Vcpkg CMake Tools",
+  "description": "Vcpkg VSCode extension to integrate vcpkg into VSCode",
+  "icon": "images/vcpkg-logo.svg",
+  "publisher": "JackBoosY",
+  "license": "MIT",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.76.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "vcpkg"
+  ],
+  "bugs": {
+      "url": "https://github.com/jackboosy/vcpkg-vscode-extension/issues"
+  },
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/jackboosy/vcpkg-vscode-extension.git"
+  },
+  "homepage": "https://github.com/jackboosy/vcpkg-vscode-extension",
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vcpkg-integration.enable_vcpkg",
+        "title": "Enable vcpkg",
+        "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.disable_vcpkg",
+        "title": "Disable vcpkg",
+        "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.current_triplet",
+        "title": "Get current triplet",
+        "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.current_host_triplet",
+        "title": "Get current host triplet",
+        "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.enable_manifest",
+        "title": "Enable manifest",
+        "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.disable_manifest",
+        "title": "Disable manifest",
+        "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.use_static_lib",
+        "title": "Use static library",
+        "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.use_dynamic_lib",
+        "title": "Use dynamic library",
+        "category": "vcpkg"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Vcpkg",
+      "properties": {
+        "vcpkg.general.vcpkgPath": {
+          "type": "string",
+          "default": "",
+          "description": "vcpkg path which you installed.",
+          "scope": "window"
+        },
+        "vcpkg.general.enable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use vcpkg",
+          "scope": "resource"
+        },
+        "vcpkg.general.useManifest": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use Vcpkg Manifest",
+          "scope": "resource"
+        },
+        "vcpkg.general.installDependencies": {
+          "type": "boolean",
+          "default": false,
+          "description": "Install Vcpkg Dependencies",
+          "scope": "resource"
+        },
+        "vcpkg.general.autolink": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use Autolink",
+          "scope": "resource"
+        },
+        "vcpkg.general.installDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Installed Directory",
+          "scope": "resource"
+        },
+        "vcpkg.general.additionalOptions": {
+          "type": "string",
+          "default": "",
+          "description": "Addtional options",
+          "scope": "resource"
+        },
+        "vcpkg.target.useStaticLib": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use Static Library",
+          "scope": "resource"
+        },
+        "vcpkg.target.useDynamicCRT": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use Dynamic CRT",
+          "scope": "resource"
+        },
+        "vcpkg.target.defaultTriplet": {
+          "type": "string",
+          "default": "",
+          "description": "Default triplet",
+          "scope": "resource"
+        },
+        "vcpkg.target.hostTriplet": {
+          "type": "string",
+          "default": "",
+          "description": "Host triplet",
+          "scope": "resource"
+        },
+        "vcpkg.target.configuration": {
+          "type": "string",
+          "default": "Debug",
+          "description": "Vcpkg Configuration",
+          "scope": "resource",
+          "enum": [
+              "Debug",
+              "Release"
+          ]
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.76.0",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.56.0",
+    "@typescript-eslint/parser": "^5.56.0",
+    "eslint": "^8.36.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "typescript": "^4.9.5",
+    "@vscode/test-electron": "^2.3.0"
+  },
+  "dependencies": {
+    "cmake-tools": "^1.13.0"
+  }
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <!-- Created with SVG-edit - https://github.com/SVG-Edit/svgedit-->
+ <defs>
+  <symbol height="16" id="svg_5" viewBox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">
+   <path d="m7.27287,5.05296c-3.32523,-1.17791 -5.70269,0.32234 -7.08017,2.04941c-0.05221,0.06367 -0.15261,0.02387 -0.14056,-0.05969c0.08032,-0.45764 0.26907,-1.35301 0.63854,-2.17277c1.50198,-3.33078 5.49787,-4.9504 7.87533,-4.86683c2.37749,0.08356 5.22479,1.63952 4.23689,3.83616c-0.8715,1.94196 -2.0522,2.44734 -5.53003,1.21372z" fill="url(#svg_4)"/>
+   <path d="m4.77944,4.99812c0,-0.04378 -0.03213,-0.08357 -0.08032,-0.08357c-1.10439,0.02786 -3.45373,0.76007 -4.67057,2.97263c-0.00402,0.00796 -0.00804,0.01592 -0.00804,0.02786c-0.3775,2.64636 4.57821,4.37336 4.75893,-2.91692z" fill="url(#svg_3)"/>
+   <path d="m8.74113,10.947c3.32527,1.1779 5.70267,-0.3223 7.08017,-2.04938c0.0522,-0.06367 0.1526,-0.02388 0.1405,0.05969c-0.0803,0.45764 -0.269,1.35299 -0.6385,2.17279c-1.498,3.3308 -5.49384,4.9504 -7.8713,4.8668c-2.37746,-0.0836 -5.22478,-1.6395 -4.23685,-3.8362c0.86745,-1.9379 2.05216,-2.44332 5.52598,-1.2137z" fill="url(#svg_2)"/>
+   <path d="m11.2125,11.07c0,0.0438 0.0322,0.0836 0.0803,0.0836c1.1044,-0.0278 3.4618,-0.7959 4.6787,-3.01241c0.004,-0.00796 0.008,-0.01592 0.008,-0.02786c0.3775,-2.64234 -4.5863,-4.33359 -4.767,2.95667z" fill="url(#svg_1)"/>
+   <defs>
+    <linearGradient gradientUnits="userSpaceOnUse" id="svg_4" x1="0.324315" x2="13.877" y1="7.86759" y2="-0.453912">
+     <stop stop-color="#FC950B"/>
+     <stop offset="0.592076" stop-color="#F9C438"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="svg_3" x1="5.64274" x2="0.327581" y1="4.08734" y2="10.3649">
+     <stop stop-color="#FC950B"/>
+     <stop offset="1" stop-color="#F9C438"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="svg_2" x1="17.2883" x2="2.09626" y1="9.94356" y2="14.7361">
+     <stop stop-color="#FC950B"/>
+     <stop offset="0.612893" stop-color="#F9C438"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="svg_1" x1="14.1247" x2="12.6976" y1="13.4565" y2="2.10704">
+     <stop stop-color="#FC950B"/>
+     <stop offset="1" stop-color="#F9C438"/>
+    </linearGradient>
+   </defs>
+  </symbol>
+ </defs>
+ <g class="layer">
+  <title>Layer 1</title>
+  <use id="svg_6" transform="matrix(7.91854 0 0 7.91854 0.15164 0.151655)" x="0" xlink:href="#svg_5" y="0"/>
+  <g id="svg_7"/>
+ </g>
+</svg>
