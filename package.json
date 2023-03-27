@@ -23,7 +23,16 @@
       "url": "https://github.com/jackboosy/vcpkg-vscode-extension.git"
   },
   "homepage": "https://github.com/jackboosy/vcpkg-vscode-extension",
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:cmake",
+    "onLanguage:c",
+    "onLanguage:cpp",
+    "onLanguage:cuda-cpp",
+    "onLanguage:objective-c",
+    "onLanguage:objective-cpp",
+    "workspaceContains:vcpkg.json",
+    "workspaceContains:CMakeLists.txt"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
