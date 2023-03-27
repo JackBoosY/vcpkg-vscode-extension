@@ -162,6 +162,9 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js"
   },
+  "extensionDependencies": [
+      "ms-vscode.cmake-tools"
+  ],
   "devDependencies": {
     "@types/vscode": "^1.76.0",
     "@types/glob": "^8.1.0",
