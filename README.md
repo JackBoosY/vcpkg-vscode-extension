@@ -13,7 +13,7 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 ### Enable vcpkg integration
 
-1. Ctrl(⌘) + Shift + P`
+1. Ctrl(⌘) + Shift + P
 2. Search vcpkg.
 3. Select `vcpkg: Enable vcpkg`:
 
