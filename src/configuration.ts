@@ -34,12 +34,12 @@ export class ConfigurationManager implements vscode.Disposable
         this._context = context;
     }
 
-    private logInfo(content: string)
+    logInfo(content: string)
     {
         console.log("[vcpkg tools] " + content);
     }
 
-    private logErr(content: string)
+    logErr(content: string)
     {
         console.error("[vcpkg tools] " + content);
     }
@@ -86,7 +86,20 @@ export class ConfigurationManager implements vscode.Disposable
 
     private generateVcpkgFullPath(path: string)
     {
-        return path + '/vcpkg.exe';
+        if (process.platform === "win32")
+        {
+            return path + '/vcpkg.exe';
+        }
+        else
+        {
+            return path + '/vcpkg';
+        }
+    }
+
+    private isVcpkgEnabled()
+    {
+        return workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig) === undefined ?
+            false : workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig);
     }
 
     private isVcpkgExistInPath(path: string)
@@ -97,7 +110,7 @@ export class ConfigurationManager implements vscode.Disposable
     private getAndCleanCMakeOptions(condition: string)
     {
 		let cmakeConfigs = workspace.getConfiguration('cmake').get<Array<string>>(this._cmakeOptionConfig);
-		this.logInfo('cmake options: ' + cmakeConfigs?.toString());
+		this.logInfo('cmake options: ' + cmakeConfigs?.toString() + ' condition: ' + condition);
 
         let newConfigs = new Array<string>;
         if (cmakeConfigs !== undefined)
@@ -106,6 +119,7 @@ export class ConfigurationManager implements vscode.Disposable
             {
                 this.logInfo('current cmake option: ' + cmakeConfigs[curr].toString() + ' index: ' + curr);
                 let matched = cmakeConfigs[curr].toString().match(condition);
+                this.logInfo('matched: ' + matched);
                 if (matched === null)
                 {
                     newConfigs.push(cmakeConfigs[curr]);
@@ -145,6 +159,17 @@ export class ConfigurationManager implements vscode.Disposable
     private isStaticLib(triplet : string)
     {
         return triplet?.endsWith('-static');
+    }
+
+    private async cleanupVcpkgRelatedCMakeOptions()
+    {
+        this.logInfo('clean up vcpkg-related cmake configs.')
+        let cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig);
+		await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cleanOptions);
+        cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig);
+		await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cleanOptions);
+        cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgTargetTripletConfig);
+		await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cleanOptions);
     }
 
     private async addVcpkgToolchain(vcpkgRoot : string)
@@ -194,6 +219,7 @@ export class ConfigurationManager implements vscode.Disposable
 
         this.logInfo('current arch is: ' + currArch);
 
+        await workspace.getConfiguration('vcpkg').update(this._enableVcpkgConfig, true);
         await workspace.getConfiguration('vcpkg').update(this._hostTripletConfig, currArch);
         this.logInfo('update host triplet to: ' + currArch);
         await workspace.getConfiguration('vcpkg').update(this._targetTripletConfig, currArch);
@@ -210,7 +236,16 @@ export class ConfigurationManager implements vscode.Disposable
     }
 
     async enableVcpkg() {
-		vscode.window.showInformationMessage('Registring vcpkg...');
+        if (this.isVcpkgEnabled())
+        {
+            vscode.window.showInformationMessage('Vcpkg is already enabled.');
+            return;
+        }
+
+		vscode.window.showInformationMessage('Enabling vcpkg...');
+
+        // cleanup old vcpkg-related cmake configs
+        this.cleanupVcpkgRelatedCMakeOptions();
 
         let oldPath = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
 
@@ -288,16 +323,20 @@ export class ConfigurationManager implements vscode.Disposable
 
     async disableVcpkg()
     {
+        if (!this.isVcpkgEnabled())
+        {
+            vscode.window.showInformationMessage('Vcpkg is already disabled.');
+            return;
+        }
 		vscode.window.showInformationMessage('Disable vcpkg...');
 
         await workspace.getConfiguration('vcpkg').update(this._enableVcpkgConfig, false);
 
         // clean vcpkg options
-        let cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig);
-		workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cleanOptions);
+        this.cleanupVcpkgRelatedCMakeOptions();
         
         // clean toolchain setting
-        workspace.getConfiguration('cmake').update(this._configConfigSettingConfig, this.getCleanVcpkgToolchian());
+        await workspace.getConfiguration('cmake').update(this._configConfigSettingConfig, this.getCleanVcpkgToolchian());
 
         this.logInfo('Disabled vcpkg plugin.');
     }
@@ -306,28 +345,28 @@ export class ConfigurationManager implements vscode.Disposable
     {
 		vscode.window.showInformationMessage('Manifest mode enabled.');
 
-		workspace.getConfiguration('vcpkg').update('general.useManifest', true);
+		await workspace.getConfiguration('vcpkg').update('general.useManifest', true);
 
         let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig);
 
         newConfigs.push(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig + this._cmakeOptionEanble);
 
 		this.logInfo('cmake options: ' + newConfigs.toString());
-		workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, newConfigs);
+		await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, newConfigs);
     }
 
     async disableManifest()
     {
 		vscode.window.showInformationMessage('Manifest mode disabled.');
 
-		workspace.getConfiguration('vcpkg').update('general.useManifest', false);
+		await workspace.getConfiguration('vcpkg').update('general.useManifest', false);
 
         let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig);
 
         newConfigs.push(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig + this._cmakeOptionDisable);
 
 		this.logInfo('cmake options: ' + newConfigs.toString());
-		workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, newConfigs);
+		await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, newConfigs);
     }
 
     async getCurrentTriplet()
@@ -342,7 +381,7 @@ export class ConfigurationManager implements vscode.Disposable
 
     async useStaticLib()
     {
-		workspace.getConfiguration('vcpkg').update(this._useStaticLibConfig, true);
+		await workspace.getConfiguration('vcpkg').update(this._useStaticLibConfig, true);
 
         this.updateCurrentTripletSetting();
 
@@ -352,7 +391,7 @@ export class ConfigurationManager implements vscode.Disposable
 
     async useDynamicLib()
     {
-		workspace.getConfiguration('vcpkg').update(this._useStaticLibConfig, false);
+		await workspace.getConfiguration('vcpkg').update(this._useStaticLibConfig, false);
 
         this.updateCurrentTripletSetting();
 

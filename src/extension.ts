@@ -12,9 +12,9 @@ let disposables: vscode.Disposable[];
 export function activate(context: vscode.ExtensionContext) {
 	disposables = [];
 	configMgr = new ConfigurationManager(context);
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
+	
+	configMgr.logInfo('Trying to active vcpkg plugin...');
+	
 
 	// register vcpkg
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.enable_vcpkg', async() => await configMgr.enableVcpkg()));
@@ -42,6 +42,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// config changed event
 	disposables.push(vscode.workspace.onDidChangeConfiguration(async(event) => await configMgr.onConfigurationChanged(event)));
+	
+	configMgr.logInfo('All the event are registered.');
 }
 
 // This method is called when your extension is deactivated
