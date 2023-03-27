@@ -20,6 +20,7 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
   a. Extension will automaticly enable vcpkg if you already set environment variable `VCPKG_ROOT` or already set vcpkg path in settings.
   
   b. If environment variable `VCPKG_ROOT` is not set, please choose vcpkg root folder.
+
 4. Extension will select the triplet (dynamic) according to your system architecture, vcpkg toolchain will be added into cmake settings.
 
 ### Disable vcpkg integration
@@ -45,6 +46,11 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 
 ## Release Notes
+
+### 0.1.0
+
+- Support non-Windows
+- Fix the problem of changing settings without responding
 
 ### 0.0.4
 
