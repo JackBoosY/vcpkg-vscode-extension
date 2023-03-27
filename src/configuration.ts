@@ -117,9 +117,9 @@ export class ConfigurationManager implements vscode.Disposable
         {
             for (let curr in cmakeConfigs)
             {
-                this.logInfo('current cmake option: ' + cmakeConfigs[curr].toString() + ' index: ' + curr);
+                //this.logInfo('current cmake option: ' + cmakeConfigs[curr].toString() + ' index: ' + curr);
                 let matched = cmakeConfigs[curr].toString().match(condition);
-                this.logInfo('matched: ' + matched);
+                //this.logInfo('matched: ' + matched);
                 if (matched === null)
                 {
                     newConfigs.push(cmakeConfigs[curr]);
@@ -137,9 +137,9 @@ export class ConfigurationManager implements vscode.Disposable
         let newSettings = new Object;
         for (let curr in currentSettings)
         {
-            this.logInfo("curr:" + curr);
+            //this.logInfo("curr:" + curr);
             let matched = curr.match('CMAKE_TOOLCHAIN_FILE');
-            this.logInfo("matched:" + matched);
+            //this.logInfo("matched:" + matched);
 
             if (matched !== null)
             {
@@ -158,7 +158,7 @@ export class ConfigurationManager implements vscode.Disposable
 
     private isStaticLib(triplet : string)
     {
-        return triplet?.endsWith('-static');
+        return triplet.endsWith('-static');
     }
 
     private async cleanupVcpkgRelatedCMakeOptions()
@@ -176,7 +176,7 @@ export class ConfigurationManager implements vscode.Disposable
     {
         let cleanConfig = this.getCleanVcpkgToolchian();
         (cleanConfig as any)['CMAKE_TOOLCHAIN_FILE'] = vcpkgRoot + '/scripts/buildsystems/vcpkg.cmake';
-        (cleanConfig as any)['VCPKG_TARGET_TRIPLET'] = workspace.getConfiguration('vcpkg').get(this._targetTripletConfig);
+        
         await workspace.getConfiguration('cmake').update(this._configConfigSettingConfig, cleanConfig);
     }
 
@@ -184,27 +184,34 @@ export class ConfigurationManager implements vscode.Disposable
     {
         let isStatic = workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig);
 		let currTriplet = workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
+
+        if (currTriplet === undefined)
+        {
+            this.logErr('Couldn\'t get current target triplet!');
+            vscode.window.showInformationMessage('Vcpkg extension has problem! Please report it to github then disable and enable vcpkg extension.');
+            return;
+        }
         
         this.logInfo('current target triplet is: ' + currTriplet);
-        this.logInfo('current use static triplet ? ' + isStatic);
-
         if (isStatic)
         {
-            if (!this.isStaticLib(currTriplet as string))
+            if (!this.isStaticLib(currTriplet))
             {
                 currTriplet += '-static';
             }
         }
         else
         {
-            if (this.isStaticLib(currTriplet as string))
+            if (this.isStaticLib(currTriplet))
             {
-                (currTriplet as string).substring(0, (currTriplet as string).length - '-static'.length);
+                currTriplet = currTriplet.substring(0, currTriplet.length - '-static'.length);
             }
         }
 
         let cmakeTargetTripletSetting = this._cmakeOptionPrefix + this._vcpkgTargetTripletConfig + '=' + currTriplet;
         this.logInfo('set target triplet to:' + cmakeTargetTripletSetting);
+
+        await workspace.getConfiguration('vcpkg').update(this._targetTripletConfig, currTriplet);
 
         let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgTargetTripletConfig);
 
@@ -479,12 +486,14 @@ export class ConfigurationManager implements vscode.Disposable
         }
         else if (event.affectsConfiguration('vcpkg.' + this._useStaticLibConfig))
         {
-            this.logInfo('detect vcpkg static lib configuration changed.');
-            if (workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig))
+            let isUseStatic = workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig);
+            this.logInfo('detect vcpkg static lib configuration changed to ' + (isUseStatic ? 'static' : 'dynamic'));
+
+            if (isUseStatic)
             {
                 this.useStaticLib();
             }
-            else
+            else if (!isUseStatic)
             {
                 this.useDynamicLib();
             }
