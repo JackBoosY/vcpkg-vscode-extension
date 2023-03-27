@@ -258,7 +258,7 @@ export class ConfigurationManager implements vscode.Disposable
             return;
         }
 
-		let vcpkgRoot = null;
+		let vcpkgRoot = "";
 		if (process.env['VCPKG_ROOT'])
 		{
 			vcpkgRoot = process.env['VCPKG_ROOT'];
@@ -298,7 +298,17 @@ export class ConfigurationManager implements vscode.Disposable
 				}
 
 				let uri = result[0].path.toString();
-				vcpkgRoot = uri.substring(1, uri.length);
+
+                this.logInfo("select: " + uri);
+
+                if (process.platform === "win32")
+                {
+                    vcpkgRoot = uri.substring(1, uri.length);
+                }
+                else
+                {
+                    vcpkgRoot = uri;
+                }
 
 				if (this.isVcpkgExistInPath(vcpkgRoot))
 				{
