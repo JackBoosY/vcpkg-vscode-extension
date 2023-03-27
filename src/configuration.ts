@@ -455,24 +455,27 @@ export class ConfigurationManager implements vscode.Disposable
         {
             this.logInfo('detect vcpkg install option configuration changed.');
             let extraOptCfgs = workspace.getConfiguration('vcpkg').get<Array<string>>(this._additionalOptionsConfig);
-            let extraOptions = this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig + '="';
-            if (extraOptCfgs !== undefined)
+            if (extraOptCfgs !== undefined && extraOptCfgs.length)
             {
+                let extraOptions = this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig + '="';
                 for (let curr in extraOptCfgs)
                 {
                     extraOptions += extraOptCfgs[curr] + ';';
 
                     this.logInfo('add extra vcpkg instal option: ' + extraOptCfgs[curr]);
                 }
+                extraOptions += '"';
+
+                let cmakeConfigs = this.getAndCleanCMakeOptions(this._vcpkgInstallOptionsConfig);
+                cmakeConfigs?.push(extraOptions);
                 
+                await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cmakeConfigs);
             }
-
-            extraOptions += '"';
-
-            let cmakeConfigs = this.getAndCleanCMakeOptions(this._additionalOptionsConfig);
-            cmakeConfigs?.push(extraOptions);
-            
-            await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cmakeConfigs);
+            else
+            {
+                let cmakeConfigs = this.getAndCleanCMakeOptions(this._vcpkgInstallOptionsConfig);
+                await workspace.getConfiguration('cmake').update(this._cmakeOptionConfig, cmakeConfigs);
+            }
         }
         else if (event.affectsConfiguration('vcpkg.' + this._useStaticLibConfig))
         {
