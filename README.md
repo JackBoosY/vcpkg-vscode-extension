@@ -13,9 +13,9 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 ### Enable vcpkg integration
 
-1. Ctrl + Shift + P
+1. Ctrl(⌘) + Shift + P`
 2. Search vcpkg.
-3. Select `vcpkg: Enable vcpkg`.
+3. Select `vcpkg: Enable vcpkg`:
 
   a. Extension will automaticly enable vcpkg if you already set environment variable `VCPKG_ROOT` or already set vcpkg path in settings.
   
@@ -25,27 +25,37 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 ### Disable vcpkg integration
 
-1. Ctrl + Shift + P
+1. Ctrl(⌘) + Shift + P
 2. Search vcpkg.
 3. Select `vcpkg: Disable vcpkg`.
 4. vcpkg toolchain will be removed from cmake toolchain and other vcpkg setting will also be removed from cmake options.
 
 ### Use static library
 
-1. Ctrl + Shift + P
+1. Ctrl(⌘) + Shift + P
 2. Search vcpkg.
 3. Select `vcpkg: Use static library`.
 
 ### Use dynamic library
 
-1. Ctrl + Shift + P
+1. Ctrl(⌘) + Shift + P
 2. Search vcpkg.
 3. Select `vcpkg: Use dynamic library`.
+
+### Set vcpkg additional install options
+
+1. Open `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
+2. Add additional options one by one in `Vcpkg › Target: Additional Options`.
 
 ## Known Issue
 
 
 ## Release Notes
+
+### 0.1.1
+
+- Fix vcpkg path is invalid on non-Windows
+- Add guide for VCPKG_INSTALL_OPTIONS
 
 ### 0.1.0
 
