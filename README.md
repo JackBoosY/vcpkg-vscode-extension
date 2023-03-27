@@ -52,6 +52,10 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 ## Release Notes
 
+### 0.1.2
+
+- Fix target triplet can't be syncd when using dynamic lib
+
 ### 0.1.1
 
 - Fix vcpkg path is invalid on non-Windows
