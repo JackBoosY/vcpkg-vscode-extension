@@ -47,10 +47,12 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 1. Open `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
 2. Add additional options one by one in `Vcpkg › Target: Additional Options`.
 
-## Known Issue
-
-
 ## Release Notes
+
+### 0.1.3
+
+- Now all settings will be synced in workspace settings
+- Vcpkg path can be set only once on the same machine
 
 ### 0.1.2
 
