@@ -198,7 +198,7 @@ export class ConfigurationManager implements vscode.Disposable
         if (currTriplet === undefined)
         {
             this.logErr('Couldn\'t get current target triplet!');
-            vscode.window.showInformationMessage('Vcpkg extension has problem! Please report it to github then disable and enable vcpkg extension.');
+            vscode.window.showErrorMessage('Vcpkg extension has problem! Please report it to github then disable and enable vcpkg extension.');
             return;
         }
         
