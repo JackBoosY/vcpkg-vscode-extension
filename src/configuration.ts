@@ -12,7 +12,6 @@ export class ConfigurationManager implements vscode.Disposable
     private _vcpkgPathConfig = 'general.vcpkgPath';
     private _useManifestConfig = 'general.useManifest';
     private _installDependenciesConfig = 'general.installDependencies';
-    private _autoLinkConfig = 'general.autolink';
     private _installDirectoryConfig = 'general.installDirectory';
     private _additionalOptionsConfig = 'target.additionalOptions';
     private _useStaticLibConfig = 'target.useStaticLib';
@@ -481,9 +480,6 @@ export class ConfigurationManager implements vscode.Disposable
             }
         }
         else if (event.affectsConfiguration('vcpkg.' + this._installDependenciesConfig))
-        {
-        }
-        else if (event.affectsConfiguration('vcpkg.' + this._autoLinkConfig))
         {
         }
         else if (event.affectsConfiguration('vcpkg.' + this._installDirectoryConfig))

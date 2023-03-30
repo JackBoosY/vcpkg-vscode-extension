@@ -105,12 +105,6 @@
           "description": "Install Vcpkg Dependencies",
           "scope": "resource"
         },
-        "vcpkg.general.autolink": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use Autolink",
-          "scope": "resource"
-        },
         "vcpkg.general.installDirectory": {
           "type": "string",
           "default": "",
