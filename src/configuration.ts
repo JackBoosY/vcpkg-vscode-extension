@@ -26,6 +26,7 @@ export class ConfigurationManager implements vscode.Disposable
     private _vcpkgManifestModeConfig = 'VCPKG_MANIFEST_MODE';
     private _vcpkgTargetTripletConfig = 'VCPKG_TARGET_TRIPLET';
     private _vcpkgInstallOptionsConfig = 'VCPKG_INSTALL_OPTIONS';
+    private _vcpkgCRTLinkageConfig = 'VCPKG_CRT_LINKAGE';
     private _cmakeOptionPrefix = '-D';
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
@@ -180,6 +181,8 @@ export class ConfigurationManager implements vscode.Disposable
         this.updateCMakeSetting(this._cmakeOptionConfig, cleanOptions);
         cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgTargetTripletConfig);
         this.updateCMakeSetting(this._cmakeOptionConfig, cleanOptions);
+        cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgCRTLinkageConfig);
+        this.updateCMakeSetting(this._cmakeOptionConfig, cleanOptions);
     }
 
     private async addVcpkgToolchain(vcpkgRoot : string)
@@ -229,6 +232,22 @@ export class ConfigurationManager implements vscode.Disposable
         
         this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
+
+    private async updateCurrentCRTSetting()
+    {
+        let isUseDynamic = workspace.getConfiguration('vcpkg').get<boolean>(this._vcpkgUseDynamicCRTConfig);
+
+        let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgCRTLinkageConfig);
+
+        let crtConfig = this._cmakeOptionPrefix + this._vcpkgCRTLinkageConfig + (isUseDynamic ? this._cmakeOptionEanble : this._cmakeOptionDisable);
+
+        newConfigs.push(crtConfig);
+
+		this.logInfo('cmake options: ' + crtConfig.toString());
+        
+        this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
+    }
+
 
     private async initCMakeSettings(vcpkgPath : string)
     {
@@ -407,25 +426,25 @@ export class ConfigurationManager implements vscode.Disposable
     {
 		vscode.window.showInformationMessage('Current host triplet is: ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
     }
-
-    async useStaticLib()
+    
+    async useLibType(staticLib: boolean)
     {
-        this.updateVcpkgSetting(this._useStaticLibConfig, true);
+        this.updateVcpkgSetting(this._useStaticLibConfig, staticLib);
 
         this.updateCurrentTripletSetting();
 
-        this.logInfo('Set to static triplet');
-		vscode.window.showInformationMessage('Now use static library / triplet');
+        this.logInfo('Set to ' + staticLib? 'static': 'dynamic' + ' triplet');
+		vscode.window.showInformationMessage('Now use ' + (staticLib? 'static': 'dynamic') + ' library / triplet');
     }
 
-    async useDynamicLib()
+    async useCRTType(dynamicCRT: boolean)
     {
-        this.updateVcpkgSetting(this._useStaticLibConfig, false);
+        this.updateVcpkgSetting(this._vcpkgUseDynamicCRTConfig, dynamicCRT);
 
-        this.updateCurrentTripletSetting();
+        this.updateCurrentCRTSetting();
 
-        this.logInfo('Set to dynamic triplet');
-		vscode.window.showInformationMessage('Now use dynamic library / triplet');
+        this.logInfo('Set to ' + dynamicCRT? 'dynamic': 'static' + ' triplet');
+		vscode.window.showInformationMessage('Now use ' + (dynamicCRT? 'dynamic': 'static') + ' CRT linkage');
     }
 
     async onConfigurationChanged(event : vscode.ConfigurationChangeEvent)
@@ -501,34 +520,24 @@ export class ConfigurationManager implements vscode.Disposable
             let isUseStatic = workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig);
             this.logInfo('detect vcpkg static lib configuration changed to ' + (isUseStatic ? 'static' : 'dynamic'));
 
-            if (isUseStatic)
-            {
-                this.useStaticLib();
-            }
-            else if (!isUseStatic)
-            {
-                this.useDynamicLib();
-            }
+            this.useLibType(<any>isUseStatic);
         }
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgUseDynamicCRTConfig))
         {
             if (process.platform === "win32")
             {
+                let isUseDynamic = workspace.getConfiguration('vcpkg').get<boolean>(this._vcpkgUseDynamicCRTConfig);
+                this.logInfo('detect vcpkg CRT configuration changed to ' + (isUseDynamic ? 'dynamic' : 'static'));
 
+                this.useCRTType(<any>isUseDynamic);
             }
         }
         else if (event.affectsConfiguration('vcpkg.' + this._targetTripletConfig))
         {
             this.logInfo('detect vcpkg target triplet configuration changed.');
             let currSel = workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
-            if (this.isStaticLib(currSel as string))
-            {
-                this.useStaticLib();
-            }
-            else
-            {
-                this.useDynamicLib();
-            }
+
+            this.useLibType(<any>this.isStaticLib(currSel as string));
         }
     }
 

@@ -35,10 +35,10 @@ export function activate(context: vscode.ExtensionContext) {
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.current_host_triplet', async() => await configMgr.getCurrentHostTriplet()));
 	
 	// use static lib
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.use_static_lib', async() => await configMgr.useStaticLib()));
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.use_static_lib', async() => await configMgr.useLibType(true)));
 	
 	// use dynamic lib
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.use_dynamic_lib', async() => await configMgr.useDynamicLib()));
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.use_dynamic_lib', async() => await configMgr.useLibType(false)));
 
 	// config changed event
 	disposables.push(vscode.workspace.onDidChangeConfiguration(async(event) => await configMgr.onConfigurationChanged(event)));
