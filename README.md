@@ -49,6 +49,10 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 ## Release Notes
 
+### 0.2.1
+
+- Add CRT Linkage option
+
 ### 0.1.3
 
 - Now all settings will be synced in workspace settings
