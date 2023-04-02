@@ -98,8 +98,10 @@ export class ConfigurationManager implements vscode.Disposable
 
     private isVcpkgEnabled()
     {
-        return workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig) === undefined ?
-            false : workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig);
+        let config = workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig);
+
+
+        return config !== undefined ? config : false;
     }
 
     private isVcpkgExistInPath(path: string)
@@ -390,6 +392,12 @@ export class ConfigurationManager implements vscode.Disposable
 
     async enableManifest()
     {
+        if (!this.isVcpkgEnabled())
+        {
+            vscode.window.showErrorMessage('Vcpkg is not enabled yet, manifest mode will not be enabled.');
+            return;
+        }
+
 		vscode.window.showInformationMessage('Manifest mode enabled.');
 
         this.updateVcpkgSetting(this._useManifestConfig, true);
