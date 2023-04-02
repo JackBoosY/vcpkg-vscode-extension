@@ -49,6 +49,10 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 
 ## Release Notes
 
+### 0.2.2
+
+- Manifest mode only can be enabled when vcpkg is enabled.
+
 ### 0.2.1
 
 - Add CRT Linkage option
