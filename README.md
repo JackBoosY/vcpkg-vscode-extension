@@ -2,7 +2,7 @@
 
 [Vcpkg VSCode CMake extension](https://marketplace.visualstudio.com/items?itemName=JackBoosY.vcpkg-cmake-tools) provides vcpkg integration in VSCode.
 
-It's still WIP, please help us to improve it in [github](https://github.com/JackBoosY/vcpkg-vscode-extension).
+Please report any bugs in [github](https://github.com/JackBoosY/vcpkg-vscode-extension).
 
 ## Requirements
 
