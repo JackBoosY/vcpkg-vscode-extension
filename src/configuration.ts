@@ -101,6 +101,13 @@ export class ConfigurationManager implements vscode.Disposable
 
     private isVcpkgEnabled()
     {
+        let oldPath = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
+
+        if (oldPath === undefined || !this.isVcpkgExistInPath(oldPath))
+        {
+            return false;
+        }
+
         let config = workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig);
 
 
@@ -382,7 +389,6 @@ export class ConfigurationManager implements vscode.Disposable
         if (!this.isVcpkgEnabled())
         {
             vscode.window.showInformationMessage('Vcpkg is already disabled.');
-            return;
         }
 		vscode.window.showInformationMessage('Disable vcpkg...');
 
@@ -508,8 +514,16 @@ export class ConfigurationManager implements vscode.Disposable
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgPathConfig))
         {
             this.logInfo('detect vcpkg path configuration changed.');
-            this.disableVcpkg();
-            this.enableVcpkg();
+            let oldPath = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
+    
+            if (oldPath === undefined || !this.isVcpkgExistInPath(oldPath))
+            {
+                this.disableVcpkg();
+            }
+            else
+            {
+                this.enableVcpkg();
+            }
         }
         else if (event.affectsConfiguration('vcpkg.' + this._useManifestConfig))
         {
