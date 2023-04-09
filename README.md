@@ -18,8 +18,10 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 3. Select `vcpkg: Enable vcpkg`:
 
   a. Extension will automaticly enable vcpkg if you already set environment variable `VCPKG_ROOT` or already set vcpkg path in settings.
-  
-  b. If environment variable `VCPKG_ROOT` is not set, please choose vcpkg root folder.
+
+  b. Extension will automaticly enable vcpkg if vcpkg root folder was selected before.
+
+  c. Otherwise, please choose vcpkg root folder.
 
 4. Extension will select the triplet (dynamic) according to your system architecture, vcpkg toolchain will be added into cmake settings.
 
@@ -47,48 +49,12 @@ It's still WIP, please help us to improve it in [github](https://github.com/Jack
 1. Open `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
 2. Add additional options one by one in `Vcpkg › Target: Additional Options`.
 
-## Release Notes
+### Enable/Disable install dependency binaries
 
-### 0.2.2
+1. Open `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
+2. Select/Unselect `Vcpkg › Target: Install Dependencies`.
 
-- Manifest mode only can be enabled when vcpkg is enabled.
+### Find system/vcpkg installed libraries first
 
-### 0.2.1
-
-- Add CRT Linkage option
-
-### 0.1.3
-
-- Now all settings will be synced in workspace settings
-- Vcpkg path can be set only once on the same machine
-
-### 0.1.2
-
-- Fix target triplet can't be syncd when using dynamic lib
-
-### 0.1.1
-
-- Fix vcpkg path is invalid on non-Windows
-- Add guide for VCPKG_INSTALL_OPTIONS
-
-### 0.1.0
-
-- Support non-Windows
-- Fix the problem of changing settings without responding
-
-### 0.0.4
-
-- Support VCPKG_INSTALL_OPTIONS
-
-### 0.0.3
-
-- Update document.
-
-### 0.0.2
-
-- Update logo
-
-### 0.0.1
-
-- Add feature to enable/disable vcpkg.
-- Add feature to use dynamic/static triplet/library.
+1. Open `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
+2. Select/Unselect `Vcpkg › Target: Prefer System Libs`.
