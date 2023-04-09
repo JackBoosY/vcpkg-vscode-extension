@@ -93,22 +93,16 @@
           "description": "Use vcpkg",
           "scope": "resource"
         },
-        "vcpkg.general.useManifest": {
+        "vcpkg.target.useManifest": {
           "type": "boolean",
           "default": false,
           "description": "Use Vcpkg Manifest",
           "scope": "resource"
         },
-        "vcpkg.general.installDependencies": {
+        "vcpkg.target.installDependencies": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Install Vcpkg Dependencies",
-          "scope": "resource"
-        },
-        "vcpkg.general.installDirectory": {
-          "type": "string",
-          "default": "",
-          "description": "Installed Directory",
           "scope": "resource"
         },
         "vcpkg.target.useStaticLib": {
@@ -133,6 +127,12 @@
           "type": "string",
           "default": "",
           "description": "Host triplet",
+          "scope": "resource"
+        },
+        "vcpkg.target.preferSystemLibs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Find system libraries first",
           "scope": "resource"
         },
         "vcpkg.target.additionalOptions": {

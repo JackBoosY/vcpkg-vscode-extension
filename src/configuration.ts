@@ -10,9 +10,9 @@ export class ConfigurationManager implements vscode.Disposable
 
     private _enableVcpkgConfig = 'general.enable';
     private _vcpkgPathConfig = 'general.vcpkgPath';
-    private _useManifestConfig = 'general.useManifest';
-    private _installDependenciesConfig = 'general.installDependencies';
-    private _installDirectoryConfig = 'general.installDirectory';
+    private _useManifestConfig = 'target.useManifest';
+    private _installDependenciesConfig = 'target.installDependencies';
+    private _preferSystemLibsConfig = 'target.preferSystemLibs';
     private _additionalOptionsConfig = 'target.additionalOptions';
     private _useStaticLibConfig = 'target.useStaticLib';
     private _vcpkgUseDynamicCRTConfig = 'target.useDynamicCRT';
@@ -26,6 +26,9 @@ export class ConfigurationManager implements vscode.Disposable
     private _vcpkgTargetTripletConfig = 'VCPKG_TARGET_TRIPLET';
     private _vcpkgInstallOptionsConfig = 'VCPKG_INSTALL_OPTIONS';
     private _vcpkgCRTLinkageConfig = 'VCPKG_CRT_LINKAGE';
+    private _vcpkgApplocalDeps = 'VCPKG_APPLOCAL_DEPS';
+    private _vcpkgApplocalDepsInstall = 'X_VCPKG_APPLOCAL_DEPS_INSTALL';
+    private _vcpkgPreferSystemLibs = 'VCPKG_PREFER_SYSTEM_LIBS';
     private _cmakeOptionPrefix = '-D';
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
@@ -122,6 +125,7 @@ export class ConfigurationManager implements vscode.Disposable
     private getAndCleanCMakeOptions(condition: string)
     {
 		let cmakeConfigs = workspace.getConfiguration('cmake').get<Array<string>>(this._cmakeOptionConfig);
+        condition += '=';
 		this.logInfo('cmake options: ' + cmakeConfigs?.toString() + ' condition: ' + condition);
 
         let newConfigs = new Array<string>;
@@ -270,6 +274,9 @@ export class ConfigurationManager implements vscode.Disposable
         this.updateCurrentTripletSetting();
         this.addVcpkgToolchain(vcpkgPath);
 
+        this.updateVcpkgSetting(this._installDependenciesConfig, true);
+        this.updateVcpkgSetting(this._preferSystemLibsConfig, false);
+
         // disable manifest mode by default
         this.disableManifest();
     }
@@ -379,13 +386,13 @@ export class ConfigurationManager implements vscode.Disposable
         }
 		vscode.window.showInformationMessage('Disable vcpkg...');
 
-        this.updateVcpkgSetting(this._enableVcpkgConfig, false);
+        await this.updateVcpkgSetting(this._enableVcpkgConfig, false);
 
         // clean vcpkg options
-        this.cleanupVcpkgRelatedCMakeOptions();
+        await this.cleanupVcpkgRelatedCMakeOptions();
         
         // clean toolchain setting
-        this.updateCMakeSetting(this._configConfigSettingConfig, this.getCleanVcpkgToolchian());
+        await this.updateCMakeSetting(this._configConfigSettingConfig, this.getCleanVcpkgToolchian());
 
         this.logInfo('Disabled vcpkg plugin.');
     }
@@ -400,28 +407,28 @@ export class ConfigurationManager implements vscode.Disposable
 
 		vscode.window.showInformationMessage('Manifest mode enabled.');
 
-        this.updateVcpkgSetting(this._useManifestConfig, true);
+        await this.updateVcpkgSetting(this._useManifestConfig, true);
 
         let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig);
 
         newConfigs.push(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig + this._cmakeOptionEanble);
 
 		this.logInfo('cmake options: ' + newConfigs.toString());
-        this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
+        await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
 
     async disableManifest()
     {
 		vscode.window.showInformationMessage('Manifest mode disabled.');
 
-        this.updateVcpkgSetting(this._useManifestConfig, false);
+        await this.updateVcpkgSetting(this._useManifestConfig, false);
 
         let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig);
 
         newConfigs.push(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig + this._cmakeOptionDisable);
 
 		this.logInfo('cmake options: ' + newConfigs.toString());
-        this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
+        await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
 
     async getCurrentTriplet()
@@ -436,9 +443,9 @@ export class ConfigurationManager implements vscode.Disposable
     
     async useLibType(staticLib: boolean)
     {
-        this.updateVcpkgSetting(this._useStaticLibConfig, staticLib);
+        await this.updateVcpkgSetting(this._useStaticLibConfig, staticLib);
 
-        this.updateCurrentTripletSetting();
+        await this.updateCurrentTripletSetting();
 
         this.logInfo('Set to ' + staticLib? 'static': 'dynamic' + ' triplet');
 		vscode.window.showInformationMessage('Now use ' + (staticLib? 'static': 'dynamic') + ' library / triplet');
@@ -446,12 +453,41 @@ export class ConfigurationManager implements vscode.Disposable
 
     async useCRTType(dynamicCRT: boolean)
     {
-        this.updateVcpkgSetting(this._vcpkgUseDynamicCRTConfig, dynamicCRT);
+        await this.updateVcpkgSetting(this._vcpkgUseDynamicCRTConfig, dynamicCRT);
 
-        this.updateCurrentCRTSetting();
+        await this.updateCurrentCRTSetting();
 
         this.logInfo('Set to ' + dynamicCRT? 'dynamic': 'static' + ' triplet');
 		vscode.window.showInformationMessage('Now use ' + (dynamicCRT? 'dynamic': 'static') + ' CRT linkage');
+    }
+
+    async installDependencies(install: boolean)
+    {
+		vscode.window.showInformationMessage('Install dependencies ' + (install ? 'enabled' : 'disabled') + '.');
+
+        await this.updateVcpkgSetting(this._installDependenciesConfig, install);
+
+        let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgApplocalDeps);
+        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgApplocalDeps + (install ? this._cmakeOptionEanble : this._cmakeOptionDisable));
+		this.logInfo('cmake options: ' + newConfigs.toString());
+        await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
+
+        newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgApplocalDepsInstall);
+        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgApplocalDepsInstall + (install ? this._cmakeOptionEanble : this._cmakeOptionDisable));
+		this.logInfo('cmake options: ' + newConfigs.toString());
+        await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
+    }
+
+    async preferSysLibs(sysLib: boolean)
+    {
+		vscode.window.showInformationMessage('Find ' + (sysLib ? 'system libs' : 'vcpkg generated libs') + ' first.');
+
+        await this.updateVcpkgSetting(this._preferSystemLibsConfig, sysLib);
+
+        let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgPreferSystemLibs);
+        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgPreferSystemLibs + (sysLib ? this._cmakeOptionEanble : this._cmakeOptionDisable));
+		this.logInfo('cmake options: ' + newConfigs.toString());
+        await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
 
     async onConfigurationChanged(event : vscode.ConfigurationChangeEvent)
@@ -489,9 +525,9 @@ export class ConfigurationManager implements vscode.Disposable
         }
         else if (event.affectsConfiguration('vcpkg.' + this._installDependenciesConfig))
         {
-        }
-        else if (event.affectsConfiguration('vcpkg.' + this._installDirectoryConfig))
-        {
+            this.logInfo('detect install dependencies configuration changed.');
+            let currSel = workspace.getConfiguration('vcpkg').get<boolean>(this._installDependenciesConfig);
+            this.installDependencies(currSel!);
         }
         else if (event.affectsConfiguration('vcpkg.' + this._additionalOptionsConfig))
         {
@@ -542,6 +578,12 @@ export class ConfigurationManager implements vscode.Disposable
             let currSel = workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
 
             this.useLibType(<any>this.isStaticLib(currSel as string));
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._preferSystemLibsConfig))
+        {
+            this.logInfo('detect use system libs configuration changed.');
+            let currSel = workspace.getConfiguration('vcpkg').get<boolean>(this._preferSystemLibsConfig);
+            this.preferSysLibs(currSel!);
         }
     }
 
