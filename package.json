@@ -37,6 +37,11 @@
   "contributes": {
     "commands": [
       {
+        "command": "vcpkg-welcome.getting_start",
+        "title": "Vcpkg getting start",
+        "category": "vcpkg"
+      },
+      {
         "command": "vcpkg-integration.enable_vcpkg",
         "title": "Enable vcpkg",
         "category": "vcpkg"
@@ -146,7 +151,23 @@
           "scope": "resource"
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "start",
+        "title": "Getting start with vcpkg",
+        "description": "Your first steps to setup vcpkg in your custom project.",
+        "steps": [
+          {
+            "id": "enable_vcpkg",
+            "title": "Enable vcpkg",
+            "description": "This step will try to enable vcpkg.\n[Enable vcpkg](command:vcpkg-integration.enable_vcpkg)",
+            "media": { "markdown": "media/markdown.md" },
+            "completionEvents": ["onCommand:vcpkg-integration.enable_vcpkg"]
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

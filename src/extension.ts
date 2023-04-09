@@ -14,7 +14,6 @@ export function activate(context: vscode.ExtensionContext) {
 	configMgr = new ConfigurationManager(context);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
-	
 
 	// register vcpkg
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.enable_vcpkg', async() => await configMgr.enableVcpkg()));
@@ -42,6 +41,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// config changed event
 	disposables.push(vscode.workspace.onDidChangeConfiguration(async(event) => await configMgr.onConfigurationChanged(event)));
+	
+	context.subscriptions.push(
+		vscode.commands.registerCommand("vcpkg-welcome.getting_start", () => {
+		  vscode.commands.executeCommand('workbench.action.openWalkthrough', 'JackBoosY.vcpkg-cmake-tools#start', false);
+		})
+	);
 	
 	configMgr.logInfo('All the event are registered.');
 }
