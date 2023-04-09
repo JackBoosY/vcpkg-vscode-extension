@@ -162,8 +162,51 @@
             "id": "enable_vcpkg",
             "title": "Enable vcpkg",
             "description": "This step will try to enable vcpkg.\n[Enable vcpkg](command:vcpkg-integration.enable_vcpkg)",
-            "media": { "markdown": "media/markdown.md" },
+						"media": {
+							"image": "media/enable_vcpkg.png",
+							"altText": "You may need to select vcpkg root folder."
+						},
             "completionEvents": ["onCommand:vcpkg-integration.enable_vcpkg"]
+          },
+          {
+            "id": "check_host_triplet",
+            "title": "Check your host triplet",
+            "description": "This step will try to ensure your host triplet.\n[Check triplet](command:vcpkg-integration.current_host_triplet)",
+						"media": {
+							"image": "media/check_host_triplet.png",
+							"altText": "The host triplet will show on VSCode notification window."
+						},
+            "completionEvents": ["onCommand:vcpkg-integration.current_host_triplet"]
+          },
+          {
+            "id": "check_target_triplet",
+            "title": "Check your target triplet",
+            "description": "This step will try to ensure your target triplet.\n[Check triplet](command:vcpkg-integration.current_triplet)",
+						"media": {
+							"image": "media/check_target_triplet.png",
+							"altText": "The target triplet will show on VSCode notification window."
+						},
+            "completionEvents": ["onCommand:vcpkg-integration.current_triplet"]
+          },
+          {
+            "id": "enable_manifest",
+            "title": "Enable vcpkg manifest mode in your project",
+            "description": "This step will try to enable vcpkg manifest mode if vcpkg.json is found.\n[Enable manifest](command:vcpkg-integration.enable_manifest)",
+						"media": {
+							"image": "media/enable_manifest.png",
+							"altText": "Manifest mode will only be enabled when your project root has vcpkg.json file(manifest file)."
+						},
+            "completionEvents": ["onCommand:vcpkg-integration.enable_manifest"]
+          },
+          {
+            "id": "use_static_lib",
+            "title": "Use vcpkg installed static libraries",
+            "description": "This step will set your project to use vcpkg installed static libraries.\n[Use static libraries](command:vcpkg-integration.use_static_lib)",
+						"media": {
+							"image": "media/use_static_libs.png",
+							"altText": "Use vcpkg installed libraries which belong to static triplet."
+						},
+            "completionEvents": ["onCommand:vcpkg-integration.use_static_lib"]
           }
         ]
       }
