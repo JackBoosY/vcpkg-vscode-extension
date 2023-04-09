@@ -15,7 +15,7 @@ You can use Vcpkg getting start page to control vcpkg behavior.
 
 for more options, please see `Preferences` - `Settings` - `Extensions` - `vcpkg`.
 
-![getting-start-page][./media/intro.png]
+![getting-start-page](./media/intro.png)
 
 Also, you can manually control vcpkg behavior with the following commands:
 
