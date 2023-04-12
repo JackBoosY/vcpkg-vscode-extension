@@ -144,7 +144,6 @@ export class ConfigurationManager implements vscode.Disposable
         {
             return false;
         }
-        return fs.existsSync(this.generateVcpkgFullPath(path));
     }
 
     private async updateCMakeSetting(subSetting: string, value: any, userScope: boolean = false)
