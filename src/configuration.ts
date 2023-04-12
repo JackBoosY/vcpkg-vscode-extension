@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import path = require('path');
 import * as vscode from 'vscode';
 import { workspace } from "vscode";
+import * as proc from 'child_process';
 
 export class ConfigurationManager implements vscode.Disposable
 {
@@ -45,6 +46,16 @@ export class ConfigurationManager implements vscode.Disposable
     logErr(content: string)
     {
         console.error("[vcpkg tools] " + content);
+    }
+
+    private async runCommand(command: string, param: string, executeRoot: string): Promise<string>
+    {
+        try {
+            return await proc.execSync(command + ' ' + param, {cwd: executeRoot, encoding: 'utf-8'});
+        }
+        catch (error) {
+            return "";
+        }
     }
 
     private getArch(){
@@ -103,7 +114,7 @@ export class ConfigurationManager implements vscode.Disposable
     {
         let oldPath = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
 
-        if (oldPath === undefined || !this.isVcpkgExistInPath(oldPath))
+        if ((oldPath === undefined || oldPath.length === 0) || !this.isVcpkgExistInPath(oldPath))
         {
             return false;
         }
@@ -114,8 +125,25 @@ export class ConfigurationManager implements vscode.Disposable
         return config !== undefined ? config : false;
     }
 
-    private isVcpkgExistInPath(path: string)
+    private async isVcpkgExistInPath(path: string): Promise<boolean>
     {
+        let fullPath = this.generateVcpkgFullPath(path);
+        if (fs.existsSync(fullPath))
+        {
+            let version = await this.runCommand(fullPath, '--version', path);
+            if (version.match('vcpkg package management program version') !== null)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
         return fs.existsSync(this.generateVcpkgFullPath(path));
     }
 
@@ -302,7 +330,7 @@ export class ConfigurationManager implements vscode.Disposable
 
         let oldPath = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
 
-        if (oldPath && this.isVcpkgExistInPath(oldPath))
+        if (oldPath && await this.isVcpkgExistInPath(oldPath))
         {
             this.initCMakeSettings(oldPath);
 
@@ -316,7 +344,7 @@ export class ConfigurationManager implements vscode.Disposable
 		{
 			vcpkgRoot = process.env['VCPKG_ROOT'];
 			
-			if (this.isVcpkgExistInPath(vcpkgRoot))
+			if (await this.isVcpkgExistInPath(vcpkgRoot))
 			{
 				vscode.window.showInformationMessage('vcpkg enabled.');
 
@@ -342,7 +370,7 @@ export class ConfigurationManager implements vscode.Disposable
 				canSelectMany: false,
 				openLabel: 'Select vcpkg root path'
 			};
-			vscode.window.showOpenDialog(options).then(result => {
+			vscode.window.showOpenDialog(options).then(async result => {
 				if (result === undefined)
 				{
                     this.logErr('invalid vcpkg path, plugin will not be enabled.');
@@ -363,7 +391,7 @@ export class ConfigurationManager implements vscode.Disposable
                     vcpkgRoot = uri;
                 }
 
-				if (this.isVcpkgExistInPath(vcpkgRoot))
+				if (await this.isVcpkgExistInPath(vcpkgRoot))
 				{
 					vscode.window.showInformationMessage('vcpkg enabled.');
 
