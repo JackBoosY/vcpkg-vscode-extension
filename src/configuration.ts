@@ -11,6 +11,8 @@ export class ConfigurationManager implements vscode.Disposable
 
     private _enableVcpkgConfig = 'general.enable';
     private _vcpkgPathConfig = 'general.vcpkgPath';
+    private _vcpkgAssetSourceConfig = 'general.assetSource';
+    private _vcpkgBinaryCacheConfig = 'general.binaryCaching';
     private _useManifestConfig = 'target.useManifest';
     private _installDependenciesConfig = 'target.installDependencies';
     private _preferSystemLibsConfig = 'target.preferSystemLibs';
@@ -23,13 +25,16 @@ export class ConfigurationManager implements vscode.Disposable
     private _cmakeOptionConfig = 'configureArgs';
     private _configConfigSettingConfig = 'configureSettings';
 
+    private _vcpkgRootConfig = 'VCPKG_ROOT';
     private _vcpkgManifestModeConfig = 'VCPKG_MANIFEST_MODE';
     private _vcpkgTargetTripletConfig = 'VCPKG_TARGET_TRIPLET';
     private _vcpkgInstallOptionsConfig = 'VCPKG_INSTALL_OPTIONS';
     private _vcpkgCRTLinkageConfig = 'VCPKG_CRT_LINKAGE';
-    private _vcpkgApplocalDeps = 'VCPKG_APPLOCAL_DEPS';
-    private _vcpkgApplocalDepsInstall = 'X_VCPKG_APPLOCAL_DEPS_INSTALL';
-    private _vcpkgPreferSystemLibs = 'VCPKG_PREFER_SYSTEM_LIBS';
+    private _vcpkgApplocalDepsConfig = 'VCPKG_APPLOCAL_DEPS';
+    private _vcpkgApplocalDepsInstallConfig = 'X_VCPKG_APPLOCAL_DEPS_INSTALL';
+    private _vcpkgPreferSystemLibsConfig = 'VCPKG_PREFER_SYSTEM_LIBS';
+    private _vcpkgAssertSourceOption = '--x-asset-sources';
+    private _vcpkgBinarySourceOption = '--x-binarysource';
     private _cmakeOptionPrefix = '-D';
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
@@ -146,16 +151,6 @@ export class ConfigurationManager implements vscode.Disposable
         }
     }
 
-    private async updateCMakeSetting(subSetting: string, value: any, userScope: boolean = false)
-    {
-        await workspace.getConfiguration('cmake').update(subSetting, value, userScope);
-    }
-
-    private async updateVcpkgSetting(subSetting: string, value: any, userScope: boolean = false)
-    {
-        await workspace.getConfiguration('vcpkg').update(subSetting, value, userScope);
-    }
-
     private getAndCleanCMakeOptions(condition: string)
     {
 		let cmakeConfigs = workspace.getConfiguration('cmake').get<Array<string>>(this._cmakeOptionConfig);
@@ -178,6 +173,72 @@ export class ConfigurationManager implements vscode.Disposable
         }
 
         return newConfigs;
+    }
+
+    private getCMakeOption(condition: string)
+    {
+		let cmakeConfigs = workspace.getConfiguration('cmake').get<Array<string>>(this._cmakeOptionConfig);
+        condition += '=';
+
+        let newConfigs = '';
+        if (cmakeConfigs !== undefined)
+        {
+            for (let curr in cmakeConfigs)
+            {
+                //this.logInfo('current cmake option: ' + cmakeConfigs[curr].toString() + ' index: ' + curr);
+                let matched = cmakeConfigs[curr].toString().match(condition);
+                //this.logInfo('matched: ' + matched);
+                if (matched !== null)
+                {
+                    newConfigs = cmakeConfigs[curr];
+                    break;
+                }
+            }
+        }
+
+        return newConfigs;
+    }
+
+    private async updateCMakeSetting(subSetting: string, value: any, userScope: boolean = false)
+    {
+        await workspace.getConfiguration('cmake').update(subSetting, value, userScope);
+    }
+
+    private async updateVcpkgSetting(subSetting: string, value: any, userScope: boolean = false)
+    {
+        await workspace.getConfiguration('vcpkg').update(subSetting, value, userScope);
+    }
+
+    private getAndCleanInstallOptions(condition: string)
+    {
+        condition = condition.substring('--'.length, condition.length);
+        let options = this.getCMakeOption(this._vcpkgInstallOptionsConfig);
+
+        let newConfigs = new Array<string>;
+        if (options !== undefined && options.length !== 0)
+        {
+            let matchedOption = options.toString().substring(this._cmakeOptionPrefix.length + this._vcpkgInstallOptionsConfig.length + '=\"'.length, options.toString().length - '\='.length);
+            let currOpt = matchedOption.split('--');
+            if (currOpt.length)
+            {
+                for (let opt in currOpt)
+                {
+                    if (currOpt[opt].length && currOpt[opt].match(condition) === null)
+                    {
+                        newConfigs.push('--' + currOpt[opt]);
+                    }
+                }
+            }
+        }
+
+        return newConfigs;
+    }
+
+    private async updateInstallOptions(value: any)
+    {
+        let originConfig = this.getAndCleanCMakeOptions(this._vcpkgInstallOptionsConfig);
+        originConfig.push(this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig + '=\"' + value.toString() + '\"');
+        await this.updateCMakeSetting(this._cmakeOptionConfig, originConfig);
     }
 
     private getCleanVcpkgToolchian()
@@ -287,7 +348,6 @@ export class ConfigurationManager implements vscode.Disposable
         this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
 
-
     private async initCMakeSettings(vcpkgPath : string)
     {
         this.updateVcpkgSetting(this._vcpkgPathConfig, vcpkgPath, true);
@@ -338,25 +398,23 @@ export class ConfigurationManager implements vscode.Disposable
             return;
         }
 
-		let vcpkgRoot = "";
-		if (process.env['VCPKG_ROOT'])
+		let vcpkgRootEnv = this._context.environmentVariableCollection.get(this._vcpkgRootConfig);
+		if (vcpkgRootEnv !== undefined)
 		{
-			vcpkgRoot = process.env['VCPKG_ROOT'];
-			
-			if (await this.isVcpkgExistInPath(vcpkgRoot))
+			if (await this.isVcpkgExistInPath(vcpkgRootEnv.value))
 			{
 				vscode.window.showInformationMessage('vcpkg enabled.');
 
-                this.initCMakeSettings(vcpkgRoot);
+                this.initCMakeSettings(vcpkgRootEnv.value);
 
 				this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get(this._hostTripletConfig));
 
-                this.logInfo('detect env VCPKG_ROOT: ' + vcpkgRoot + ' , enabled plugin.');
+                this.logInfo('detect env VCPKG_ROOT: ' + vcpkgRootEnv.value + ' , enabled plugin.');
 				return;
 			}
 			else
 			{
-                this.logErr('invalid env VCPKG_ROOT: ' + vcpkgRoot + ' , plugin will not be enabled.');
+                this.logErr('invalid env VCPKG_ROOT, plugin will not be enabled.');
 				vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled, pleaes check envornment variable VCPKG_ROOT.');
 				return;
 			}
@@ -381,6 +439,7 @@ export class ConfigurationManager implements vscode.Disposable
 
                 this.logInfo("select: " + uri);
 
+                let vcpkgRoot = '';
                 if (process.platform === "win32")
                 {
                     vcpkgRoot = uri.substring(1, uri.length);
@@ -500,13 +559,13 @@ export class ConfigurationManager implements vscode.Disposable
 
         await this.updateVcpkgSetting(this._installDependenciesConfig, install);
 
-        let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgApplocalDeps);
-        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgApplocalDeps + (install ? this._cmakeOptionEanble : this._cmakeOptionDisable));
+        let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgApplocalDepsConfig);
+        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgApplocalDepsConfig + (install ? this._cmakeOptionEanble : this._cmakeOptionDisable));
 		this.logInfo('cmake options: ' + newConfigs.toString());
         await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
 
-        newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgApplocalDepsInstall);
-        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgApplocalDepsInstall + (install ? this._cmakeOptionEanble : this._cmakeOptionDisable));
+        newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgApplocalDepsInstallConfig);
+        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgApplocalDepsInstallConfig + (install ? this._cmakeOptionEanble : this._cmakeOptionDisable));
 		this.logInfo('cmake options: ' + newConfigs.toString());
         await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
@@ -517,10 +576,34 @@ export class ConfigurationManager implements vscode.Disposable
 
         await this.updateVcpkgSetting(this._preferSystemLibsConfig, sysLib);
 
-        let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgPreferSystemLibs);
-        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgPreferSystemLibs + (sysLib ? this._cmakeOptionEanble : this._cmakeOptionDisable));
+        let newConfigs = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgPreferSystemLibsConfig);
+        newConfigs.push(this._cmakeOptionPrefix + this._vcpkgPreferSystemLibsConfig + (sysLib ? this._cmakeOptionEanble : this._cmakeOptionDisable));
 		this.logInfo('cmake options: ' + newConfigs.toString());
         await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
+    }
+
+    async assetSource(value: string)
+    {
+		vscode.window.showInformationMessage('asset source change to ' + value);
+
+        let newConfigs = this.getAndCleanInstallOptions(this._vcpkgAssertSourceOption);
+
+        newConfigs.push(this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read');
+
+		this.logInfo('install options: ' + newConfigs.toString());
+        await this.updateInstallOptions(newConfigs);
+    }
+
+    async binaryCache(value: string)
+    {
+		vscode.window.showInformationMessage('binary cache change to ' + value);
+
+        let newConfigs = this.getAndCleanInstallOptions(this._vcpkgBinarySourceOption);
+
+        newConfigs.push(this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read');
+
+		this.logInfo('install options: ' + newConfigs.toString());
+        await this.updateInstallOptions(newConfigs);
     }
 
     async onConfigurationChanged(event : vscode.ConfigurationChangeEvent)
@@ -625,6 +708,24 @@ export class ConfigurationManager implements vscode.Disposable
             this.logInfo('detect use system libs configuration changed.');
             let currSel = workspace.getConfiguration('vcpkg').get<boolean>(this._preferSystemLibsConfig);
             this.preferSysLibs(currSel!);
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._vcpkgAssetSourceConfig))
+        {
+            this.logInfo('detect asset source configuration changed.');
+            let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgAssetSourceConfig);
+            if (currValue !== undefined)
+            {
+                this.assetSource(currValue);
+            }
+        }
+        else if (event.affectsConfiguration('vcpkg.' + this._vcpkgBinaryCacheConfig))
+        {
+            this.logInfo('detect asset source configuration changed.');
+            let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgBinaryCacheConfig);
+            if (currValue !== undefined)
+            {
+                this.binaryCache(currValue);
+            }
         }
     }
 

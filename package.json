@@ -98,6 +98,18 @@
           "description": "Use vcpkg",
           "scope": "resource"
         },
+        "vcpkg.general.assetSource": {
+          "type": "string",
+          "default": "",
+          "description": "Use asset source",
+          "scope": "resource"
+        },
+        "vcpkg.general.binaryCaching": {
+          "type": "string",
+          "default": "",
+          "description": "Use binary cache",
+          "scope": "resource"
+        },
         "vcpkg.target.useManifest": {
           "type": "boolean",
           "default": false,
