@@ -175,28 +175,16 @@ export class ConfigurationManager implements vscode.Disposable
         return newConfigs;
     }
 
-    private getCMakeOption(condition: string)
+    private getCMakeConfigureSetting(setting: string)
     {
-		let cmakeConfigs = workspace.getConfiguration('cmake').get<Array<string>>(this._cmakeOptionConfig);
-        condition += '=';
+        let settings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
 
-        let newConfigs = '';
-        if (cmakeConfigs !== undefined)
+        if (settings !== undefined && settings.hasOwnProperty(setting))
         {
-            for (let curr in cmakeConfigs)
-            {
-                //this.logInfo('current cmake option: ' + cmakeConfigs[curr].toString() + ' index: ' + curr);
-                let matched = cmakeConfigs[curr].toString().match(condition);
-                //this.logInfo('matched: ' + matched);
-                if (matched !== null)
-                {
-                    newConfigs = cmakeConfigs[curr];
-                    break;
-                }
-            }
+            return (settings as any)[setting];
         }
 
-        return newConfigs;
+        return new Object;
     }
 
     private async updateCMakeSetting(subSetting: string, value: any, userScope: boolean = false)
@@ -209,24 +197,18 @@ export class ConfigurationManager implements vscode.Disposable
         await workspace.getConfiguration('vcpkg').update(subSetting, value, userScope);
     }
 
-    private getAndCleanInstallOptions(condition: string)
+    private getAndCleanCMakeConfigureSetting(condition: string)
     {
-        condition = condition.substring('--'.length, condition.length);
-        let options = this.getCMakeOption(this._vcpkgInstallOptionsConfig);
+        let options = this.getCMakeConfigureSetting(this._vcpkgInstallOptionsConfig);
 
         let newConfigs = new Array<string>;
-        if (options !== undefined && options.length !== 0)
+        if (options !== undefined)
         {
-            let matchedOption = options.toString().substring(this._cmakeOptionPrefix.length + this._vcpkgInstallOptionsConfig.length + '=\"'.length, options.toString().length - '\='.length);
-            let currOpt = matchedOption.split('--');
-            if (currOpt.length)
+            for (let opt in options)
             {
-                for (let opt in currOpt)
+                if (options[opt].match(condition) === null)
                 {
-                    if (currOpt[opt].length && currOpt[opt].match(condition) === null)
-                    {
-                        newConfigs.push('--' + currOpt[opt]);
-                    }
+                    newConfigs.push((options as any)[opt]);
                 }
             }
         }
@@ -234,16 +216,31 @@ export class ConfigurationManager implements vscode.Disposable
         return newConfigs;
     }
 
-    private async updateInstallOptions(value: any)
+    private async updateCMakeConfigureSetting(value: Array<string>)
     {
-        let originConfig = this.getAndCleanCMakeOptions(this._vcpkgInstallOptionsConfig);
-        originConfig.push(this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig + '=\"' + value.toString() + '\"');
-        await this.updateCMakeSetting(this._cmakeOptionConfig, originConfig);
+        let currentSettings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
+        if (currentSettings === undefined)
+        {
+            currentSettings = new Object;
+        }
+        else
+        {
+            if (currentSettings.hasOwnProperty(this._vcpkgInstallOptionsConfig))
+            {
+                const {[this._vcpkgInstallOptionsConfig as keyof typeof currentSettings]: _, ...withoutInstallOptions} = currentSettings;
+                currentSettings = withoutInstallOptions;
+            }
+        }
+        let newConfig = {[this._vcpkgInstallOptionsConfig] : value};
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        Object.assign(currentSettings, newConfig);
+        
+        workspace.getConfiguration('cmake').update(this._configConfigSettingConfig, currentSettings, false);
     }
 
     private getCleanVcpkgToolchian()
     {
-        let currentSettings = workspace.getConfiguration('cmake').get<object>(this._configConfigSettingConfig);
+        let currentSettings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
 
         let newSettings = new Object;
         for (let curr in currentSettings)
@@ -276,8 +273,6 @@ export class ConfigurationManager implements vscode.Disposable
     {
         this.logInfo('clean up vcpkg-related cmake configs.');
         let cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgManifestModeConfig);
-        this.updateCMakeSetting(this._cmakeOptionConfig, cleanOptions);
-        cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig);
         this.updateCMakeSetting(this._cmakeOptionConfig, cleanOptions);
         cleanOptions = this.getAndCleanCMakeOptions(this._cmakeOptionPrefix + this._vcpkgTargetTripletConfig);
         this.updateCMakeSetting(this._cmakeOptionConfig, cleanOptions);
@@ -586,24 +581,24 @@ export class ConfigurationManager implements vscode.Disposable
     {
 		vscode.window.showInformationMessage('asset source change to ' + value);
 
-        let newConfigs = this.getAndCleanInstallOptions(this._vcpkgAssertSourceOption);
+        let newConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgAssertSourceOption);
 
-        newConfigs.push(this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read');
+        newConfigs.push('\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"');
 
 		this.logInfo('install options: ' + newConfigs.toString());
-        await this.updateInstallOptions(newConfigs);
+        await this.updateCMakeConfigureSetting(newConfigs);
     }
 
     async binaryCache(value: string)
     {
 		vscode.window.showInformationMessage('binary cache change to ' + value);
 
-        let newConfigs = this.getAndCleanInstallOptions(this._vcpkgBinarySourceOption);
+        let newConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgBinarySourceOption);
 
-        newConfigs.push(this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read');
+        newConfigs.push('\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"');
 
 		this.logInfo('install options: ' + newConfigs.toString());
-        await this.updateInstallOptions(newConfigs);
+        await this.updateCMakeConfigureSetting(newConfigs);
     }
 
     async onConfigurationChanged(event : vscode.ConfigurationChangeEvent)
@@ -659,24 +654,20 @@ export class ConfigurationManager implements vscode.Disposable
             let extraOptCfgs = workspace.getConfiguration('vcpkg').get<Array<string>>(this._additionalOptionsConfig);
             if (extraOptCfgs !== undefined && extraOptCfgs.length)
             {
-                let extraOptions = this._cmakeOptionPrefix + this._vcpkgInstallOptionsConfig + '="';
+                let cmakeConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgInstallOptionsConfig);
                 for (let curr in extraOptCfgs)
                 {
-                    extraOptions += extraOptCfgs[curr] + ';';
+                    cmakeConfigs?.push(extraOptCfgs[curr]);
 
                     this.logInfo('add extra vcpkg instal option: ' + extraOptCfgs[curr]);
                 }
-                extraOptions += '"';
-
-                let cmakeConfigs = this.getAndCleanCMakeOptions(this._vcpkgInstallOptionsConfig);
-                cmakeConfigs?.push(extraOptions);
                 
-                this.updateCMakeSetting(this._cmakeOptionConfig, cmakeConfigs);
+                this.updateCMakeConfigureSetting(cmakeConfigs);
             }
             else
             {
-                let cmakeConfigs = this.getAndCleanCMakeOptions(this._vcpkgInstallOptionsConfig);
-                this.updateCMakeSetting(this._cmakeOptionConfig, cmakeConfigs);
+                let cmakeConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgInstallOptionsConfig);
+                this.updateCMakeConfigureSetting(cmakeConfigs);
             }
         }
         else if (event.affectsConfiguration('vcpkg.' + this._useStaticLibConfig))
