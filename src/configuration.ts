@@ -587,6 +587,10 @@ export class ConfigurationManager implements vscode.Disposable
         {
             this._context.environmentVariableCollection.replace(this._vcpkgAssetSourceEnvConfig, '\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"');
         }
+        else
+        {
+            this._context.environmentVariableCollection.delete(this._vcpkgAssetSourceEnvConfig);
+        }
     }
 
     async assetSourceWithInstallOption(value: string)
@@ -611,6 +615,10 @@ export class ConfigurationManager implements vscode.Disposable
         if (value.length !== 0)
         {
             this._context.environmentVariableCollection.replace(this._vcpkgBinarySourceEnvConfig, '\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"');
+        }
+        else
+        {
+            this._context.environmentVariableCollection.delete(this._vcpkgBinarySourceEnvConfig);
         }
     }
 
