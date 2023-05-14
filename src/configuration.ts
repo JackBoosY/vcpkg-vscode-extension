@@ -33,6 +33,8 @@ export class ConfigurationManager implements vscode.Disposable
     private _vcpkgApplocalDepsConfig = 'VCPKG_APPLOCAL_DEPS';
     private _vcpkgApplocalDepsInstallConfig = 'X_VCPKG_APPLOCAL_DEPS_INSTALL';
     private _vcpkgPreferSystemLibsConfig = 'VCPKG_PREFER_SYSTEM_LIBS';
+    private _vcpkgAssetSourceEnvConfig = 'X_VCPKG_ASSET_SOURCES';
+    private _vcpkgBinarySourceEnvConfig = 'VCPKG_BINARY_SOURCES';
     private _vcpkgAssertSourceOption = '--x-asset-sources';
     private _vcpkgBinarySourceOption = '--x-binarysource';
     private _cmakeOptionPrefix = '-D';
@@ -577,25 +579,51 @@ export class ConfigurationManager implements vscode.Disposable
         await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
 
-    async assetSource(value: string)
+    async assetSourceWithEnv(value: string)
+    {
+		vscode.window.showInformationMessage('asset source change to ' + value);
+
+        if (value.length !== 0)
+        {
+            this._context.environmentVariableCollection.replace(this._vcpkgAssetSourceEnvConfig, '\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"');
+        }
+    }
+
+    async assetSourceWithInstallOption(value: string)
     {
 		vscode.window.showInformationMessage('asset source change to ' + value);
 
         let newConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgAssertSourceOption);
 
-        newConfigs.push('\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"');
+        if (value.length !== 0)
+        {
+            newConfigs.push('\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"');
+        }
 
 		this.logInfo('install options: ' + newConfigs.toString());
         await this.updateCMakeConfigureSetting(newConfigs);
     }
 
-    async binaryCache(value: string)
+    async binaryCacheWithEnv(value: string)
+    {
+		vscode.window.showInformationMessage('binary cache change to ' + value);
+
+        if (value.length !== 0)
+        {
+            this._context.environmentVariableCollection.replace(this._vcpkgBinarySourceEnvConfig, '\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"');
+        }
+    }
+
+    async binaryCacheWithInstallOption(value: string)
     {
 		vscode.window.showInformationMessage('binary cache change to ' + value);
 
         let newConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgBinarySourceOption);
 
-        newConfigs.push('\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"');
+        if (value.length !== 0)
+        {
+            newConfigs.push('\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"');
+        }
 
 		this.logInfo('install options: ' + newConfigs.toString());
         await this.updateCMakeConfigureSetting(newConfigs);
@@ -706,7 +734,7 @@ export class ConfigurationManager implements vscode.Disposable
             let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgAssetSourceConfig);
             if (currValue !== undefined)
             {
-                this.assetSource(currValue);
+                this.assetSourceWithEnv(currValue);
             }
         }
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgBinaryCacheConfig))
@@ -715,7 +743,7 @@ export class ConfigurationManager implements vscode.Disposable
             let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgBinaryCacheConfig);
             if (currValue !== undefined)
             {
-                this.binaryCache(currValue);
+                this.binaryCacheWithEnv(currValue);
             }
         }
     }
