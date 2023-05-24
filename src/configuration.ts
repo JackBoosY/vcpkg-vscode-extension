@@ -372,14 +372,45 @@ export class ConfigurationManager implements vscode.Disposable
         this.disableManifest();
     }
 
+    private async isContainManifestFile() {
+        let projectPath = vscode.workspace.workspaceFolders?.map(folder => folder.uri.path);
+
+        if (projectPath !== undefined && projectPath.length)
+        {
+            return fs.existsSync(projectPath[0] + '/vcpkg.json');
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private async suggestManifestMode() {
+        let foundManifest = await this.isContainManifestFile();
+        if (foundManifest)
+        {
+            interface Choice {
+                title: string;
+                enableManifest: boolean;
+            }
+            const chosen = await vscode.window.showInformationMessage<Choice>(
+                'Found manifest file in current project path, would you like to enable manifest mode?',
+                {},
+                { title: 'Yes', enableManifest: true },
+                { title: 'Not now', enableManifest: false });
+            
+            if (chosen && chosen.enableManifest)
+            {
+                this.enableManifest();
+            }
+        }
+    }
+
     async enableVcpkg() {
         if (this.isVcpkgEnabled())
         {
-            vscode.window.showInformationMessage('Vcpkg is already enabled.');
             return;
         }
-
-		vscode.window.showInformationMessage('Enabling vcpkg...');
 
         // cleanup old vcpkg-related cmake configs
         this.cleanupVcpkgRelatedCMakeOptions();
@@ -471,9 +502,8 @@ export class ConfigurationManager implements vscode.Disposable
     {
         if (!this.isVcpkgEnabled())
         {
-            vscode.window.showInformationMessage('Vcpkg is already disabled.');
+            return;
         }
-		vscode.window.showInformationMessage('Disable vcpkg...');
 
         await this.updateVcpkgSetting(this._enableVcpkgConfig, false);
 
@@ -491,6 +521,13 @@ export class ConfigurationManager implements vscode.Disposable
         if (!this.isVcpkgEnabled())
         {
             vscode.window.showErrorMessage('Vcpkg is not enabled yet, manifest mode will not be enabled.');
+            return;
+        }
+
+        let found = await this.isContainManifestFile();
+        if (!found)
+        {
+            vscode.window.showWarningMessage('Enable manifest mode failed: current project path doesn\'t contains vcpkg.json');
             return;
         }
 
@@ -646,6 +683,8 @@ export class ConfigurationManager implements vscode.Disposable
             if (workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig))
             {
                 this.enableVcpkg();
+                
+                await this.suggestManifestMode();
             }
             else
             {
@@ -664,6 +703,8 @@ export class ConfigurationManager implements vscode.Disposable
             else
             {
                 this.enableVcpkg();
+                
+                await this.suggestManifestMode();
             }
         }
         else if (event.affectsConfiguration('vcpkg.' + this._useManifestConfig))
