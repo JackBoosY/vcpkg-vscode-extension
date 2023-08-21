@@ -98,7 +98,7 @@ export class SettingsDocument {
 							}
 							tmpName = this.getDependencyName(line);
 						}
-						else if (line.search("\"version>=\"") !== -1 && line.search("\"version\"") !== -1)
+						else if (line.search("\"version>=\"") !== -1 || line.search("\"version\"") !== -1)
 						{
 							configs.push({name : tmpName, version: this.getDependencyVersion(line)});
 							tmpName = "";
@@ -123,7 +123,10 @@ export class SettingsDocument {
 		for (let single in configs)
 		{
 			let hash = this.verMgr.getPortVersionHash(configs[single].name, configs[single].version);
-			configsWithVersion.push({name: configs[single].name, version: configs[single].version, hash: hash});
+			if (hash.length)
+			{
+				configsWithVersion.push({name: configs[single].name, version: configs[single].version, hash: hash});
+			}
 		}
 
 		return configsWithVersion;
@@ -131,7 +134,7 @@ export class SettingsDocument {
 
 	private currentDependencyName(currentLine: string, configText: string,allConfig: Array<Object>)
 	{
-		if (currentLine.search("\"version>=\"") !== -1 && currentLine.search("\"version\"") !== -1 )
+		if (currentLine.search("\"version>=\"") !== -1 || currentLine.search("\"version\"") !== -1 )
 		{
 			let lines = configText.split('\n');
 			for (let line in lines)
