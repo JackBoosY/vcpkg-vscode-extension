@@ -38,8 +38,17 @@ export class SettingsDocument {
 
 	private getDependencyVersion(line: string)
 	{
-		let tmp = line.indexOf("\"version>=\"");
-		tmp = tmp + "\"version>=>=\"".length;
+		let tmp;
+		if (line.indexOf("\"version>=\"") !== -1)
+		{
+			tmp = line.indexOf("\"version>=\"");
+			tmp = tmp + "\"version>=\"".length;
+		}
+		else
+		{
+			tmp = line.indexOf("\"version\"");
+			tmp = tmp + "\"version\"".length;
+		}
 		let start = line.indexOf("\"", tmp);
 		let end = line.indexOf("\"", start + 1);
 		return line.substring(start + 1, end);
@@ -89,7 +98,7 @@ export class SettingsDocument {
 							}
 							tmpName = this.getDependencyName(line);
 						}
-						else if (line.search("\"version>=\"") !== -1)
+						else if (line.search("\"version>=\"") !== -1 && line.search("\"version\"") !== -1)
 						{
 							configs.push({name : tmpName, version: this.getDependencyVersion(line)});
 							tmpName = "";
@@ -122,7 +131,7 @@ export class SettingsDocument {
 
 	private currentDependencyName(currentLine: string, configText: string,allConfig: Array<Object>)
 	{
-		if (currentLine.search("\"version>=\"") !== -1)
+		if (currentLine.search("\"version>=\"") !== -1 && currentLine.search("\"version\"") !== -1 )
 		{
 			let lines = configText.split('\n');
 			for (let line in lines)
