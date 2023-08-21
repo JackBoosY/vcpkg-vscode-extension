@@ -3,15 +3,19 @@
 
 import * as vscode from 'vscode';
 import { ConfigurationManager } from './configuration';
+import {SettingsDocument} from './settingsDocument';
+import { VersionManager } from './versionManager';
 
 let configMgr : ConfigurationManager;
+let verMgr : VersionManager;
 let disposables: vscode.Disposable[];
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	disposables = [];
-	configMgr = new ConfigurationManager(context);
+	verMgr = new VersionManager();
+	configMgr = new ConfigurationManager(context, verMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -41,6 +45,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// config changed event
 	disposables.push(vscode.workspace.onDidChangeConfiguration(async(event) => await configMgr.onConfigurationChanged(event)));
+
+	// manifest completion
+	disposables.push(vscode.languages.registerCompletionItemProvider({ scheme: 'file', language: 'json', pattern: '**/vcpkg.json' }, {
+		provideCompletionItems(document, position, token) {
+			return new SettingsDocument(document, verMgr).provideCompletionItems(position, token);
+		}
+	}, "\""));
 	
 	context.subscriptions.push(
 		vscode.commands.registerCommand("vcpkg-welcome.getting_start", () => {

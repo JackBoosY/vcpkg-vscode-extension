@@ -3,11 +3,13 @@ import path = require('path');
 import * as vscode from 'vscode';
 import { workspace } from "vscode";
 import * as proc from 'child_process';
+import { VersionManager } from './versionManager';
 
 export class ConfigurationManager implements vscode.Disposable
 {
     private _context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
+    private _versionMgr : VersionManager;
 
     private _enableVcpkgConfig = 'general.enable';
     private _vcpkgPathConfig = 'general.vcpkgPath';
@@ -41,8 +43,15 @@ export class ConfigurationManager implements vscode.Disposable
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext, verMgr : VersionManager) {
         this._context = context;
+        this._versionMgr = verMgr;
+
+        let vcpkgPath = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
+        if (vcpkgPath)
+        {
+            this._versionMgr.setVcpkgRoot(vcpkgPath);
+        }
     }
 
     logInfo(content: string)
@@ -140,6 +149,7 @@ export class ConfigurationManager implements vscode.Disposable
             let version = await this.runCommand(fullPath, '--version', path);
             if (version.match('vcpkg package management program version') !== null)
             {
+                this._versionMgr.setVcpkgRoot(fullPath);
                 return true;
             }
             else

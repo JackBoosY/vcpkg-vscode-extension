@@ -70,3 +70,9 @@ Note: please only enable/disable in `workspace`!
 
 1. Open `Preferences` - `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
 2. Select/Unselect `Vcpkg › Target: Prefer System Libs`.
+
+### Version and builtin-baseline autocompletion in vcpkg manifest
+
+1. Enable vcpkg integration.
+2. Set vcpkg path.
+3. Autocompletion will be enabled automatically when typing `"`.
