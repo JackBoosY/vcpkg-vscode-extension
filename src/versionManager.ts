@@ -81,8 +81,8 @@ export class VersionManager {
                 return new Array<{version: string, hash: string}>;
             }
            
-            finalVersion += '#' + json.versions[i]["port-version"];
-            results.push({version: finalVersion, hash: json.versions[i]["git-tree"]});
+            const finalVersionWithPatch = finalVersion + '#' + json.versions[i]["port-version"];
+            results.push({version: finalVersionWithPatch, hash: this.getVersionDate(name, finalVersion)});
         }
        
         return results;
@@ -110,7 +110,7 @@ export class VersionManager {
 
        if (!version.length)
        {
-            return json.versions[0]["git-tree"];
+            return this.getVersionDate(name, json.versions[0]["version"]);
        }
 
        for (let i = 0; i < json.versions.length; i++)
@@ -136,19 +136,44 @@ export class VersionManager {
             {
                 continue;
             }
-            expectedVersion += '#' + json.versions[i]["port-version"];
-            if (expectedVersion === version)
+            const expectedVersionWithPatch = expectedVersion + '#' + json.versions[i]["port-version"];
+            if (expectedVersionWithPatch === version)
             {
-                return json.versions[i]["git-tree"];
+                return this.getVersionDate(name, expectedVersion);
             }
        }
 
        return "";
     }
 
-    private getVersionDate(name: string, version: string, patch: string)
+    private getVersionDate(name: string, version: string)
     {
         const verionFile = this.getPortVersionFile(name);
-        const command = "git blame -l" + verionFile;
+        let command = "cd " + this._vcpkgRoot + "../;";
+        command += "git blame -l " + verionFile;
+        const cp = require('child_process');
+        let result = "";
+        try 
+        {
+            result = cp.execSync(command).toString();
+        }
+        catch(e)
+        {
+            return "";
+        }
+
+        const results = result.split('\n');
+        let found = "";
+        for (let current of results)
+        {
+            if (current.search(version) !== -1)
+            {
+                found = current;
+                break;
+            }
+        }
+        found = found.substring(0, found.indexOf(' '));
+
+        return found;
     }
 }
