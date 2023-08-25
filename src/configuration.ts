@@ -387,6 +387,10 @@ export class ConfigurationManager implements vscode.Disposable
 
         if (projectPath !== undefined && projectPath.length)
         {
+            if (process.platform === "win32" && projectPath[0].startsWith('/'))
+            {
+                projectPath[0] = projectPath[0].substring(1, projectPath[0].length);
+            }
             return fs.existsSync(projectPath[0] + '/vcpkg.json');
         }
         else
