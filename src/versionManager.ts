@@ -149,13 +149,12 @@ export class VersionManager {
     private getVersionDate(name: string, version: string)
     {
         const verionFile = this.getPortVersionFile(name);
-        let command = "cd " + this._vcpkgRoot + "../;";
-        command += "git blame -l " + verionFile;
+        let command = "git blame -l " + verionFile;
         const cp = require('child_process');
         let result = "";
-        try 
+        try
         {
-            result = cp.execSync(command).toString();
+            result = cp.execSync(command, {cwd: this._vcpkgRoot + "../"}).toString();
         }
         catch(e)
         {

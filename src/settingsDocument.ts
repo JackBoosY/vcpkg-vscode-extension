@@ -139,7 +139,7 @@ export class SettingsDocument {
 			let lines = configText.split('\n');
 			for (let line in lines)
 			{
-				if (currentLine === lines[line])
+				if (lines[line].indexOf(currentLine) !== -1)
 				{
 					if (lines[Number(line) - 1].search("\"name\"") !== -1)
 					{
