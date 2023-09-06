@@ -20,6 +20,7 @@ export class SettingsDocument {
 		const currDependencyName = this.currentDependencyName(currentLine, this.document.getText(), allConfig);
 		if (currDependencyName.length)
 		{
+			vscode.window.showInformationMessage("Getting " + currDependencyName + " history versions...");
 			return this.getMatchedVersions(currDependencyName, allConfig);
 		}
 
