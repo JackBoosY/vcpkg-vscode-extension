@@ -15,6 +15,7 @@ export class ConfigurationManager implements vscode.Disposable
     private _vcpkgPathConfig = 'general.vcpkgPath';
     private _vcpkgAssetSourceConfig = 'general.assetSource';
     private _vcpkgBinaryCacheConfig = 'general.binaryCaching';
+    private _autoUpdateTriplet = 'general.autoUpdateTriplet';
     private _useManifestConfig = 'target.useManifest';
     private _installDependenciesConfig = 'target.installDependencies';
     private _preferSystemLibsConfig = 'target.preferSystemLibs';
@@ -52,6 +53,40 @@ export class ConfigurationManager implements vscode.Disposable
         {
             this._versionMgr.setVcpkgRoot(vcpkgPath);
         }
+
+        // Update vcpkg target triplet
+        let automaticUpdateTriplet = workspace.getConfiguration('vcpkg').get<Boolean>(this._autoUpdateTriplet);
+        if (automaticUpdateTriplet && this.isVcpkgEnabled())
+        {
+            this.getCurrentTriplet().then((currentTriplet) => {
+                const currentArch = this.getArch();
+                if (currentTriplet !== undefined && this.combineTriplet(currentArch) !== currentTriplet)
+                {
+                    let triplet = this.separateTriplet(currentTriplet);
+                    if (currentArch.os !== triplet.os)
+                    {
+                        let newTriplet = this.combineTriplet({arch: triplet.arch, os: currentArch.os});
+                        this.updateVcpkgSetting(this._targetTripletConfig, newTriplet);
+                        this.logInfo('Automatically update target triplet to: ' + newTriplet);
+                        vscode.window.showInformationMessage('Automatically update target triplet to: ' + newTriplet);
+                    }
+                }
+            });
+            this.getCurrentHostTriplet().then((currentHostTriplet) => {
+                const currentArch = this.getArch();
+                if (currentHostTriplet !== undefined && this.combineTriplet(currentArch) !== currentHostTriplet)
+                {
+                    let triplet = this.separateTriplet(currentHostTriplet);
+                    if (triplet.os !== currentArch.os)
+                    {
+                        let newTriplet = this.combineTriplet({arch: triplet.arch, os: currentArch.os});
+                        this.updateVcpkgSetting(this._hostTripletConfig, newTriplet);
+                        this.logInfo('Automatically update host triplet to: ' + newTriplet);
+                        vscode.window.showInformationMessage('Automatically update host triplet to: ' + newTriplet);
+                    }
+                }
+            });
+        }
     }
 
     logInfo(content: string)
@@ -82,36 +117,59 @@ export class ConfigurationManager implements vscode.Disposable
 		{
 			if (process.arch === 'x64')
 			{
-                return "x64-windows";
+                return {arch: "x64", os: "windows"};
 			}
 			else if (process.arch === 'x86')
 			{
-                return "x86-windows";
+                return {arch: "x86", os: "windows"};
 			}
 			else if (process.arch.toLowerCase() === 'arm')
 			{
-                return "arm-windows";
+                return {arch: "arm", os: "windows"};
 			}
 			else if (process.arch.toLowerCase() === 'arm64')
 			{
-                return "arm64-windows";
+                return {arch: "arm64", os: "windows"};
 			}
+            else
+            {
+                return {arch: "x86", os: "windows"};
+            }
 		}
 		else if (process.platform === "darwin")
 		{
             if (process.arch.toLowerCase() === 'arm64')
             {
-                return "arm64-osx";
+                return {arch: "arm64", os: "osx"};
             }
             else
             {
-                return "x64-osx";
+                return {arch: "x64", os: "osx"};
             }
 		}
 		else if (process.platform === "linux")
 		{
-            return "x64-linux";
+            return {arch: "x64", os: "linux"};
 		}
+        else
+        {
+            vscode.window.showWarningMessage('Warning! Could NOT detect current triplet! Please set triplet manually.');
+            return {arch: "undefined", os: "undefined"};
+        }
+    }
+
+    private combineTriplet(triplet: {arch: string, os: string})
+    {
+        return triplet.arch + "-" + triplet.os;
+    }
+
+    private separateTriplet(triplet: string)
+    {
+        let sep = triplet.indexOf('-');
+        let arch = triplet.substring(0, sep);
+        let os = triplet.substring(sep + 1, triplet.length);
+
+        return {arch: arch, os: os};
     }
 
     private generateVcpkgFullPath(path: string)
@@ -359,7 +417,7 @@ export class ConfigurationManager implements vscode.Disposable
     {
         this.updateVcpkgSetting(this._vcpkgPathConfig, vcpkgPath, true);
 
-        let currArch = this.getArch();
+        let currArch = this.combineTriplet(this.getArch());
 
         this.logInfo('current arch is: ' + currArch);
 
@@ -570,15 +628,64 @@ export class ConfigurationManager implements vscode.Disposable
 		this.logInfo('cmake options: ' + newConfigs.toString());
         await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
+    async showCurrentTriplet()
+    {
+		vscode.window.showInformationMessage('Current triplet is: ' + this.getCurrentTriplet());
+    }
+
+    async setTargetTriplet()
+    {
+        vscode.window.showInputBox().then(async result => {
+            if (result?.length)
+            {
+                // the correct triplet name is "<arch>-<os>"
+                if (result.match(".+\-.+") !== null)
+                {
+                    this.updateVcpkgSetting(this._targetTripletConfig, result);
+                    this.logInfo('update target triplet to: ' + result);
+                    vscode.window.showInformationMessage('Update target triplet to: ' + result);
+                }
+                else
+                {
+                    vscode.window.showErrorMessage('Invalide triplet name.');
+                }
+            }
+        });
+    }
+
+    async setHostTriplet()
+    {
+        vscode.window.showInputBox().then(async result => {
+            if (result?.length)
+            {
+                // the correct triplet name is "<arch>-<os>"
+                if (result.match(".+\-.+") !== null)
+                {
+                    this.updateVcpkgSetting(this._hostTripletConfig, result);
+                    this.logInfo('update host triplet to: ' + result);
+                    vscode.window.showInformationMessage('Update host triplet to: ' + result);
+                }
+                else
+                {
+                    vscode.window.showErrorMessage('Invalide triplet name.');
+                }
+            }
+        });
+    }
 
     async getCurrentTriplet()
     {
-		vscode.window.showInformationMessage('Current triplet is: ' + workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig));
+		return workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
+    }
+
+    async showCurrentHostTriplet()
+    {
+		vscode.window.showInformationMessage('Current host triplet is: ' + this.getCurrentHostTriplet());
     }
 
     async getCurrentHostTriplet()
     {
-		vscode.window.showInformationMessage('Current host triplet is: ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
+        return workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig);
     }
     
     async useLibType(staticLib: boolean)

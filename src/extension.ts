@@ -32,10 +32,16 @@ export function activate(context: vscode.ExtensionContext) {
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.disable_manifest', async() => await configMgr.disableManifest()));
 	
 	// get current triplet
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.current_triplet', async() => await configMgr.getCurrentTriplet()));
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.current_triplet', async() => await configMgr.showCurrentTriplet()));
 	
 	// get host triplet
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.current_host_triplet', async() => await configMgr.getCurrentHostTriplet()));
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.current_host_triplet', async() => await configMgr.showCurrentHostTriplet()));
+	
+	// set current triplet
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.set_target_triplet', async() => await configMgr.setTargetTriplet()));
+		
+	// set host triplet
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.set_host_triplet', async() => await configMgr.setHostTriplet()));
 	
 	// use static lib
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.use_static_lib', async() => await configMgr.useLibType(true)));

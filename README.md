@@ -56,6 +56,25 @@ Note: please only enable/disable in `workspace`!
 2. Search vcpkg.
 3. Select `vcpkg: Use dynamic library`.
 
+### Set target triplet
+
+1. Ctrl(⌘) + Shift + P
+2. Search vcpkg.
+3. Select `vcpkg: Set target triplet`.
+4. Enter your target triplet
+
+### Set host triplet
+
+1. Ctrl(⌘) + Shift + P
+2. Search vcpkg.
+3. Select `vcpkg: Set host triplet`.
+4. Enter your host triplet
+
+### Enable/Disable automatically update host/target triplet
+
+1. Open `Preferences` - `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
+2. Select/Unselect `Vcpkg › General: Auto Update Triplet`.
+
 ### Set vcpkg additional install options
 
 1. Open `Preferences` - `Settings` - `Extensions`(in `workspace`) - `Vcpkg`.
