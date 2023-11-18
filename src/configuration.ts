@@ -628,10 +628,6 @@ export class ConfigurationManager implements vscode.Disposable
 		this.logInfo('cmake options: ' + newConfigs.toString());
         await this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
-    async showCurrentTriplet()
-    {
-		vscode.window.showInformationMessage('Current triplet is: ' + this.getCurrentTriplet());
-    }
 
     private getAllSupportedTriplets()
     {
@@ -705,10 +701,14 @@ export class ConfigurationManager implements vscode.Disposable
     {
 		return workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
     }
+    async showCurrentTriplet()
+    {
+		vscode.window.showInformationMessage('Current triplet is: ' + await this.getCurrentTriplet());
+    }
 
     async showCurrentHostTriplet()
     {
-		vscode.window.showInformationMessage('Current host triplet is: ' + this.getCurrentHostTriplet());
+		vscode.window.showInformationMessage('Current host triplet is: ' + await this.getCurrentHostTriplet());
     }
 
     async getCurrentHostTriplet()
