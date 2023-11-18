@@ -633,44 +633,72 @@ export class ConfigurationManager implements vscode.Disposable
 		vscode.window.showInformationMessage('Current triplet is: ' + this.getCurrentTriplet());
     }
 
+    private getAllSupportedTriplets()
+    {
+        let triplets = [];
+        let vcpkgPath = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
+
+        // for official triplets
+        let officialTriplets = fs.readdirSync(vcpkgPath + '/triplets');
+        for (let i = 0; i < officialTriplets.length; i++)
+        {
+            let curr = officialTriplets[i];
+            if (curr.indexOf('.cmake') !== -1)
+            {
+                triplets.push({label: curr.substring(0, curr.indexOf('.cmake')), description: 'official triplet'});
+            }
+        }
+
+        // for unofficial triplets
+        let unofficialTriplets = fs.readdirSync(vcpkgPath + '/triplets/community');
+        for (let i = 0; i < unofficialTriplets.length; i++)
+        {
+            let curr = unofficialTriplets[i];
+            if (curr.indexOf('.cmake') !== -1)
+            {
+                triplets.push({label: curr.substring(0, curr.indexOf('.cmake')), description: 'unofficial triplet'});
+            }
+        }
+
+        // TODO: for custom triplets
+
+        return triplets;
+    }
+
     async setTargetTriplet()
     {
-        vscode.window.showInputBox().then(async result => {
-            if (result?.length)
-            {
-                // the correct triplet name is "<arch>-<os>"
-                if (result.match(".+\-.+") !== null)
-                {
-                    this.updateVcpkgSetting(this._targetTripletConfig, result);
-                    this.logInfo('update target triplet to: ' + result);
-                    vscode.window.showInformationMessage('Update target triplet to: ' + result);
-                }
-                else
-                {
-                    vscode.window.showErrorMessage('Invalide triplet name.');
-                }
-            }
-        });
+        let triplets = this.getAllSupportedTriplets();
+        if (triplets.length === 0)
+        {
+            vscode.window.showErrorMessage('Please check your vcpkg path first.');
+            return;
+        }
+
+        let result = await vscode.window.showQuickPick(triplets, {canPickMany: false, placeHolder: "Choose a triplet"});
+        if (result !== undefined)
+        {
+            this.updateVcpkgSetting(this._targetTripletConfig, result.label);
+            this.logInfo('update target triplet to: ' + result.label);
+            vscode.window.showInformationMessage('Update target triplet to: ' + result.label);
+        }
     }
 
     async setHostTriplet()
     {
-        vscode.window.showInputBox().then(async result => {
-            if (result?.length)
-            {
-                // the correct triplet name is "<arch>-<os>"
-                if (result.match(".+\-.+") !== null)
-                {
-                    this.updateVcpkgSetting(this._hostTripletConfig, result);
-                    this.logInfo('update host triplet to: ' + result);
-                    vscode.window.showInformationMessage('Update host triplet to: ' + result);
-                }
-                else
-                {
-                    vscode.window.showErrorMessage('Invalide triplet name.');
-                }
-            }
-        });
+        let triplets = this.getAllSupportedTriplets();
+        if (triplets.length === 0)
+        {
+            vscode.window.showErrorMessage('Please check your vcpkg path first.');
+            return;
+        }
+
+        let result = await vscode.window.showQuickPick(triplets, {canPickMany: false, placeHolder: "Choose a triplet"});
+        if (result !== undefined)
+        {
+            this.updateVcpkgSetting(this._targetTripletConfig, result.label);
+            this.logInfo('update host triplet to: ' + result.label);
+            vscode.window.showInformationMessage('Update host triplet to: ' + result.label);
+        }
     }
 
     async getCurrentTriplet()
