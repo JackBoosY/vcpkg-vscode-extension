@@ -66,6 +66,8 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	
 	configMgr.logInfo('All the event are registered.');
+
+	return context;
 }
 
 // This method is called when your extension is deactivated
