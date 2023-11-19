@@ -52,6 +52,7 @@ export class ConfigurationManager implements vscode.Disposable
             if (vcpkgPath !== undefined)
             {
                 this._versionMgr.setVcpkgRoot(vcpkgPath);
+                this.updateVcpkgSetting(this._vcpkgPathConfig, vcpkgPath, true);
             }
         });
 
@@ -173,14 +174,50 @@ export class ConfigurationManager implements vscode.Disposable
         return {arch: arch, os: os};
     }
 
+    private getEnvironmentValue(name: string)
+    {
+        if (name.search(/\$[Ee][Nn][Vv]{(.+)}/) !== -1)
+        {
+            let envName = name.match(/\$[Ee][Nn][Vv]{(.+)}/)?.at(1);
+
+            if (envName !== undefined && process.env[envName] !== undefined)
+            {
+                return process.env[envName];
+            }
+            else
+            {
+                return '';
+            }
+        }
+        else
+        {
+            return '';
+        }
+    }
+
+    private convertToAbsolutePath(path: string)
+    {
+        if (path.search(/\$[Ee][Nn][Vv]{(.+)}/) !== -1)
+        {
+            let envName = this.getEnvironmentValue(path);
+            let suffix = path.match(/\$[Ee][Nn][Vv]{.+}(.*)/)?.at(1);
+
+            if (envName)
+            {
+                return envName + suffix;
+            }
+        }
+        return '';
+    }
+
     private async getVcpkgPathFromEnv()
     {
-        // let envVar = process.env.VCPKG_PATH;
-        let envVar = this._context.environmentVariableCollection.get(this._vcpkgRootConfig);
+        let envVar = process.env.VCPKG_ROOT;
+        // let envVar = this._context.environmentVariableCollection.get(this._vcpkgRootConfig);
 
-        if (envVar !== undefined && envVar.value !== undefined && envVar.value.length !== 0 && await this.isVcpkgExistInPath(envVar.value))
+        if (envVar !== undefined && envVar.length !== 0)
         {
-            return envVar.value;
+            return envVar;
         }
 
         return undefined;
@@ -195,12 +232,11 @@ export class ConfigurationManager implements vscode.Disposable
             return tryFirst;
         }
 
-        let trySecond = this.getVcpkgPathFromEnv();
+        let trySecond = await this.getVcpkgPathFromEnv();
 
-        if (trySecond !== undefined)
+        if (trySecond !== undefined && await this.isVcpkgExistInPath(trySecond))
         {
-            this.updateVcpkgSetting(this._vcpkgPathConfig, trySecond, true);
-            return trySecond;
+            return '$ENV{VCPKG_ROOT}';
         }
 
         return undefined;
@@ -235,22 +271,43 @@ export class ConfigurationManager implements vscode.Disposable
 
     private async isVcpkgExistInPath(path: string)
     {
-        let fullPath = this.generateVcpkgFullPath(path);
+        let fullPath = '';
+        // check whether this path is a environment variable
+        if (path.search(/\$[Ee][Nn][Vv]{(.+)}/) === 0)
+        {
+            let envVar = this.convertToAbsolutePath(path);
+            if (envVar.length)
+            {
+                fullPath = this.generateVcpkgFullPath(envVar);
+            }
+        }
+
+        // otherwize, treat it as an absolute path
+        if (fullPath.length === 0)
+        {
+            fullPath = this.generateVcpkgFullPath(path);
+        }
+
         if (fs.existsSync(fullPath))
         {
+            return true;
+            // too strict, skip the following code
             let version = await this.runCommand(fullPath, '--version', path);
             if (version.match('vcpkg package management program version') !== null)
             {
+                // TODO: move this to another suitable place!
                 this._versionMgr.setVcpkgRoot(fullPath);
                 return true;
             }
             else
             {
+                this.logErr('Run command: ' + fullPath + ' --version failed with ' + version);
                 return false;
             }
         }
         else
         {
+            this.logErr('vcpkg was not found in path ' + fullPath);
             return false;
         }
     }
