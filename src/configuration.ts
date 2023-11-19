@@ -207,7 +207,7 @@ export class ConfigurationManager implements vscode.Disposable
                 return envName + suffix;
             }
         }
-        return '';
+        return path;
     }
 
     private async getVcpkgPathFromEnv()
@@ -463,7 +463,26 @@ export class ConfigurationManager implements vscode.Disposable
         {
             if (fs.existsSync(originToolchain))
             {
-                return;
+                // check whether the vcpkg path in toolchain is not the same with the path in settings
+                if (this.convertToAbsolutePath(originToolchain) !== this.convertToAbsolutePath(vcpkgRoot + '/scripts/buildsystems/vcpkg.cmake'))
+                {
+                    let result = await vscode.window.showQuickPick(['Disable', 'override vcpkg toolchain'], {canPickMany: false});
+
+                    if (result === 'Disable')
+                    {
+                        vscode.window.showInformationMessage('Vcpkg will be disabled.');
+                        this.disableVcpkg();
+                        return;
+                    }
+                    else
+                    {
+                        // continue to override the vcpkg toolchain
+                    }
+                }
+                else
+                {
+                    return;
+                }
             }
         }
 
