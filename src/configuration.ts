@@ -402,8 +402,6 @@ export class ConfigurationManager implements vscode.Disposable
     private getCMakeVcpkgToolchain()
     {
         let currentSettings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
-
-        let newSettings = new Object;
         for (let curr in currentSettings)
         {
             //this.logInfo("curr:" + curr);
