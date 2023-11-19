@@ -295,8 +295,6 @@ export class ConfigurationManager implements vscode.Disposable
             let version = await this.runCommand(fullPath, '--version', path);
             if (version.match('vcpkg package management program version') !== null)
             {
-                // TODO: move this to another suitable place!
-                this._versionMgr.setVcpkgRoot(fullPath);
                 return true;
             }
             else
@@ -609,6 +607,7 @@ export class ConfigurationManager implements vscode.Disposable
         if (oldPath !== undefined && await this.isVcpkgExistInPath(oldPath))
         {
             this.initCMakeSettings(oldPath);
+            this._versionMgr.setVcpkgRoot(oldPath);
 
             this.logInfo('vcpkg already set to ' + oldPath + ' , enabled plugin.');
             vscode.window.showInformationMessage('vcpkg enabled.');
@@ -623,6 +622,7 @@ export class ConfigurationManager implements vscode.Disposable
 				vscode.window.showInformationMessage('vcpkg enabled.');
 
                 this.initCMakeSettings(vcpkgRootEnv);
+                this._versionMgr.setVcpkgRoot(vcpkgRootEnv);
 
 				this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get(this._hostTripletConfig));
 
@@ -671,6 +671,7 @@ export class ConfigurationManager implements vscode.Disposable
 					vscode.window.showInformationMessage('vcpkg enabled.');
 
                     this.initCMakeSettings(vcpkgRoot);
+                    this._versionMgr.setVcpkgRoot(vcpkgRoot);
 
 					this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
 
