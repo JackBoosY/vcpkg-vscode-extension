@@ -15,7 +15,7 @@ let disposables: vscode.Disposable[];
 export function activate(context: vscode.ExtensionContext) {
 	disposables = [];
 	verMgr = new VersionManager();
-	configMgr = new ConfigurationManager(context, verMgr);
+	configMgr = new ConfigurationManager(/*context, */verMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 

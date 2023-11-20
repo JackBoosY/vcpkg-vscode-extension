@@ -7,7 +7,7 @@ import { VersionManager } from './versionManager';
 
 export class ConfigurationManager implements vscode.Disposable
 {
-    private _context: vscode.ExtensionContext;
+    //private _context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
     private _versionMgr : VersionManager;
 
@@ -44,8 +44,8 @@ export class ConfigurationManager implements vscode.Disposable
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
 
-    constructor(context: vscode.ExtensionContext, verMgr : VersionManager) {
-        this._context = context;
+    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager) {
+        // this._context = context;
         this._versionMgr = verMgr;
 
         this.getVcpkgPath().then((vcpkgPath) => {
@@ -944,11 +944,13 @@ export class ConfigurationManager implements vscode.Disposable
 
         if (value.length !== 0)
         {
-            this._context.environmentVariableCollection.replace(this._vcpkgAssetSourceEnvConfig, '\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"');
+            process.env[this._vcpkgAssetSourceEnvConfig] = '\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"';
+            //this._context.environmentVariableCollection.replace(this._vcpkgAssetSourceEnvConfig, '\"' + this._vcpkgAssertSourceOption + '=' + 'clear;x-azurl,' + value + ',,read\"');
         }
         else
         {
-            this._context.environmentVariableCollection.delete(this._vcpkgAssetSourceEnvConfig);
+            delete process.env[this._vcpkgAssetSourceEnvConfig];
+            //this._context.environmentVariableCollection.delete(this._vcpkgAssetSourceEnvConfig);
         }
     }
 
@@ -973,11 +975,13 @@ export class ConfigurationManager implements vscode.Disposable
 
         if (value.length !== 0)
         {
-            this._context.environmentVariableCollection.replace(this._vcpkgBinarySourceEnvConfig, '\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"');
+            process.env[this._vcpkgBinarySourceEnvConfig] = '\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"';
+            //this._context.environmentVariableCollection.replace(this._vcpkgBinarySourceEnvConfig, '\"' + this._vcpkgBinarySourceOption + '=' + 'clear;files,' + value + ',read\"');
         }
         else
         {
-            this._context.environmentVariableCollection.delete(this._vcpkgBinarySourceEnvConfig);
+            delete process.env[this._vcpkgBinarySourceEnvConfig];
+            //this._context.environmentVariableCollection.delete(this._vcpkgBinarySourceEnvConfig);
         }
     }
 
