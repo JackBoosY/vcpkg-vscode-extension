@@ -14,27 +14,28 @@ let settingMgr : SettingsDocument;
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
 
-	test('Sample test', async () => {
+	test('general test', async () => {
 		const ext = vscode.extensions.getExtension("JackBoosY.vcpkg-cmake-tools");
-		if (ext === undefined)
+		assert.notEqual(ext, undefined, "get extension failed!");
+		if (ext !== undefined)
 		{
-			console.error('Get exntension failed!');
-			return;
+			const myExtensionContext = await ext.activate();
+
+			verMgr = new VersionManager();
+			configMgr = new ConfigurationManager(myExtensionContext, verMgr);
+
+			configMgr.disableVcpkg();
+			configMgr.enableVcpkg();
+			assert.equal(configMgr.isVcpkgEnabled(), true, "test enable vcpkg failed");
+	
+			configMgr.disableVcpkg();
+			assert.equal(configMgr.isVcpkgEnabled(), false, "test disable vcpkg failed");
 		}
-		const myExtensionContext = await ext.activate();
-		verMgr = new VersionManager();
-		configMgr = new ConfigurationManager(myExtensionContext, verMgr);
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
 	});
 
 	test('version test', () => {
 		const ext = vscode.extensions.getExtension("JackBoosY.vcpkg-cmake-tools");
-		if (ext === undefined)
-		{
-			console.error('Get exntension failed!');
-			return;
-		}
+		assert.notEqual(ext, undefined, "get extension failed!");
 		//const myExtensionContext = await ext.activate();
 		//verMgr = new VersionManager();
 		//configMgr = new ConfigurationManager(myExtensionContext, verMgr);
