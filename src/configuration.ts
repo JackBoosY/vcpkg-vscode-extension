@@ -212,7 +212,7 @@ export class ConfigurationManager implements vscode.Disposable
 
     private async getVcpkgPathFromEnv()
     {
-        let envVar = process.env.VCPKG_ROOT;
+        let envVar = process.env[this._vcpkgRootConfig];
         // let envVar = this._context.environmentVariableCollection.get(this._vcpkgRootConfig);
 
         if (envVar !== undefined && envVar.length !== 0)
@@ -236,7 +236,7 @@ export class ConfigurationManager implements vscode.Disposable
 
         if (trySecond !== undefined && await this.isVcpkgExistInPath(trySecond))
         {
-            return '$ENV{VCPKG_ROOT}';
+            return '$ENV{' + this._vcpkgRootConfig + '}';
         }
 
         return undefined;
