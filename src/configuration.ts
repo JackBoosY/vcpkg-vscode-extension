@@ -580,6 +580,7 @@ export class ConfigurationManager implements vscode.Disposable
 
     private async initCMakeSettings(vcpkgPath : string)
     {
+        this.logInfo('init cmake settings.');
         this.updateVcpkgSetting(this._vcpkgPathConfig, vcpkgPath, true);
 
         let currArch = this.combineTriplet(this.getArch());
@@ -648,13 +649,15 @@ export class ConfigurationManager implements vscode.Disposable
         }
     }
 
-    async enableVcpkg() {
-        if (this.isVcpkgEnabled())
+    async enableVcpkg(forceEnable: Boolean) {
+        if (this.isVcpkgEnabled() && !forceEnable)
         {
+            this.logInfo('vcpkg is already enabled.');
             return;
         }
 
         // cleanup old vcpkg-related cmake configs
+        this.logInfo('cleanning vcpkg related cmake options.');
         this.cleanupVcpkgRelatedCMakeOptions();
 
         let oldPath = await this.getVcpkgPath();
@@ -1027,7 +1030,7 @@ export class ConfigurationManager implements vscode.Disposable
             this.logInfo('detect vcpkg enable configuration changed.');
             if (workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig))
             {
-                this.enableVcpkg();
+                this.enableVcpkg(true);
                 
                 await this.suggestManifestMode();
             }
@@ -1043,11 +1046,13 @@ export class ConfigurationManager implements vscode.Disposable
     
             if (oldPath === undefined || !this.isVcpkgExistInPath(oldPath))
             {
+                vscode.window.showErrorMessage('Vcpkg path is incorrect! Disabling vcpkg now.');
                 this.disableVcpkg(true);
             }
             else
             {
-                this.enableVcpkg();
+                vscode.window.showInformationMessage('Re-enable vcpkg now.');
+                this.enableVcpkg(true);
                 
                 await this.suggestManifestMode();
             }
