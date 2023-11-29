@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
 	// register vcpkg
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.enable_vcpkg', async() => await configMgr.enableVcpkg()));
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.enable_vcpkg', async() => await configMgr.enableVcpkg(false)));
 
 	// disable vcpkg
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.disable_vcpkg', async() => await configMgr.disableVcpkg(true)));
