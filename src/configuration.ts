@@ -456,7 +456,7 @@ export class ConfigurationManager implements vscode.Disposable
         this.updateCMakeSetting(this._cmakeOptionConfig, cleanOptions);
     }
 
-    private async addVcpkgToolchain(vcpkgRoot : string)
+    private async checkVcpkgToolchain(vcpkgRoot: string)
     {
         let originToolchain = this.getCMakeVcpkgToolchain();
         if (originToolchain !== undefined)
@@ -466,33 +466,52 @@ export class ConfigurationManager implements vscode.Disposable
                 // check whether the vcpkg path in toolchain is not the same with the path in settings
                 if (this.convertToAbsolutePath(originToolchain) !== this.convertToAbsolutePath(vcpkgRoot + '/scripts/buildsystems/vcpkg.cmake'))
                 {
-                    vscode.window.showErrorMessage('Detected mismatched vcpkg toolchain!');
-                    let result = await vscode.window.showQuickPick(['Disable vcpkg', 'Override vcpkg toolchain'], {canPickMany: false});
-
-                    if (result === 'Disable vcpkg')
-                    {
-                        this.logErr('Detected mismatched toolchain, user canceled, now disable vcpkg');
-                        vscode.window.showInformationMessage('Vcpkg will be disabled.');
-                        this.disableVcpkg(false);
-                        return false;
-                    }
-                    else
-                    {
-                        this.logInfo('Detected mismatched toolchain, use continue, override vcpkg toolchain now.');
-                        // continue to override the vcpkg toolchain
-                    }
+                    this.logInfo('Detected invalid toolchain.');
+                    return false;
                 }
                 else
                 {
                     // use current toolchain
-                    this.logInfo('Detected invalid toolchain, override vcpkg toolchain now.');
+                    this.logInfo('Detected valid toolchain.');
                     return true;
                 }
             }
             else
             {
-                this.logInfo('override vcpkg toolchain now.');
-                // continue to override the vcpkg toolchain
+                this.logInfo('toolchain file is not found.');
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private async addVcpkgToolchain(vcpkgRoot : string)
+    {
+        if (this.getCMakeVcpkgToolchain() !== undefined)
+        {
+            if (!(await this.checkVcpkgToolchain(vcpkgRoot)))
+            {
+                vscode.window.showErrorMessage('Detected mismatched vcpkg toolchain!');
+                let result = await vscode.window.showQuickPick(['Disable vcpkg', 'Override vcpkg toolchain'], {canPickMany: false});
+    
+                if (result === 'Disable vcpkg')
+                {
+                    this.logErr('Detected mismatched toolchain, user canceled, now disable vcpkg');
+                    vscode.window.showInformationMessage('Vcpkg will be disabled.');
+                    this.disableVcpkg(false);
+                    return false;
+                }
+                else
+                {
+                    this.logInfo('Detected mismatched toolchain, use continue, override vcpkg toolchain now.');
+                    // continue to override the vcpkg toolchain
+                }
+            }
+            else
+            {
+                // toolchain is matched and set.
+                return true;
             }
         }
 
