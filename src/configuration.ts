@@ -48,7 +48,7 @@ export class ConfigurationManager implements vscode.Disposable
         // this._context = context;
         this._versionMgr = verMgr;
 
-        this.getVcpkgPath().then((vcpkgPath) => {
+        this.getVcpkgPathFromConfig().then((vcpkgPath) => {
             if (vcpkgPath !== undefined)
             {
                 this._versionMgr.setVcpkgRoot(vcpkgPath);
@@ -223,20 +223,13 @@ export class ConfigurationManager implements vscode.Disposable
         return undefined;
     }
 
-    private async getVcpkgPath()
+    private async getVcpkgPathFromConfig()
     {
         let tryFirst = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
 
         if ((tryFirst !== undefined && tryFirst.length !== 0) && await this.isVcpkgExistInPath(tryFirst))
         {
             return tryFirst;
-        }
-
-        let trySecond = await this.getVcpkgPathFromEnv();
-
-        if (trySecond !== undefined && await this.isVcpkgExistInPath(trySecond))
-        {
-            return '$ENV{' + this._vcpkgRootConfig + '}';
         }
 
         return undefined;
@@ -256,7 +249,7 @@ export class ConfigurationManager implements vscode.Disposable
 
     private isVcpkgEnabled()
     {
-        let oldPath = this.getVcpkgPath();
+        let oldPath = this.getVcpkgPathFromConfig();
 
         if (oldPath === undefined)
         {
@@ -660,9 +653,9 @@ export class ConfigurationManager implements vscode.Disposable
         this.logInfo('cleanning vcpkg related cmake options.');
         this.cleanupVcpkgRelatedCMakeOptions();
 
-        let oldPath = await this.getVcpkgPath();
+        let oldPath = await this.getVcpkgPathFromConfig();
 
-        if (oldPath !== undefined && await this.isVcpkgExistInPath(oldPath))
+        if (oldPath !== undefined)
         {
             if (!this.initCMakeSettings(oldPath))
             {
@@ -821,7 +814,7 @@ export class ConfigurationManager implements vscode.Disposable
     private getAllSupportedTriplets()
     {
         let triplets = [];
-        let vcpkgPath = this.getVcpkgPath();
+        let vcpkgPath = this.getVcpkgPathFromConfig();
 
         if (vcpkgPath === undefined)
         {
@@ -1042,9 +1035,9 @@ export class ConfigurationManager implements vscode.Disposable
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgPathConfig))
         {
             this.logInfo('detect vcpkg path configuration changed.');
-            let oldPath = await this.getVcpkgPath();
+            let oldPath = await this.getVcpkgPathFromConfig();
     
-            if (oldPath === undefined || !this.isVcpkgExistInPath(oldPath))
+            if (oldPath === undefined)
             {
                 vscode.window.showErrorMessage('Vcpkg path is incorrect! Disabling vcpkg now.');
                 this.disableVcpkg(true);
