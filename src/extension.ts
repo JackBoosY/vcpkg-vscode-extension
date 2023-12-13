@@ -15,15 +15,15 @@ let disposables: vscode.Disposable[];
 export function activate(context: vscode.ExtensionContext) {
 	disposables = [];
 	verMgr = new VersionManager();
-	configMgr = new ConfigurationManager(context, verMgr);
+	configMgr = new ConfigurationManager(/*context, */verMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
 	// register vcpkg
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.enable_vcpkg', async() => await configMgr.enableVcpkg()));
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.enable_vcpkg', async() => await configMgr.enableVcpkg(false)));
 
 	// disable vcpkg
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.disable_vcpkg', async() => await configMgr.disableVcpkg()));
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.disable_vcpkg', async() => await configMgr.disableVcpkg(true)));
 	
 	// enable manifest
 	disposables.push(vscode.commands.registerCommand('vcpkg-integration.enable_manifest', async() => await configMgr.enableManifest()));
