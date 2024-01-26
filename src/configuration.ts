@@ -4,11 +4,13 @@ import * as vscode from 'vscode';
 import { workspace } from "vscode";
 import * as proc from 'child_process';
 import { VersionManager } from './versionManager';
+import { VcpkgLogMgr } from './log';
 
 export class ConfigurationManager implements vscode.Disposable
 {
     //private _context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
+    private _logMgr : VcpkgLogMgr;
     private _versionMgr : VersionManager;
 
     private _enableVcpkgConfig = 'general.enable';
@@ -44,8 +46,9 @@ export class ConfigurationManager implements vscode.Disposable
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
 
-    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager) {
+    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager, logMgr : VcpkgLogMgr) {
         // this._context = context;
+        this._logMgr = logMgr;
         this._versionMgr = verMgr;
 
         this.getVcpkgPathFromConfig().then((vcpkgPath) => {
@@ -93,12 +96,12 @@ export class ConfigurationManager implements vscode.Disposable
 
     logInfo(content: string)
     {
-        console.log("[vcpkg tools] " + content);
+        this._logMgr.logInfo(content);
     }
 
     logErr(content: string)
     {
-        console.error("[vcpkg tools] " + content);
+        this._logMgr.logErr(content);
     }
 
     private async runCommand(command: string, param: string, executeRoot: string): Promise<string>
