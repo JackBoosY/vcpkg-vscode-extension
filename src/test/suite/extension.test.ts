@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { ConfigurationManager } from '../../configuration';
 import {SettingsDocument} from '../../settingsDocument';
 import { VersionManager } from '../../versionManager';
+import {VcpkgLogMgr} from '../../log';
 
 let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
@@ -19,16 +20,14 @@ suite('Extension Test Suite', () => {
 		assert.notEqual(ext, undefined, "get extension failed!");
 		if (ext !== undefined)
 		{
-			const myExtensionContext = await ext.activate();
-
 			verMgr = new VersionManager();
-			configMgr = new ConfigurationManager(myExtensionContext, verMgr);
+			configMgr = new ConfigurationManager(/*myExtensionContext, */verMgr, new VcpkgLogMgr());
 
-			configMgr.disableVcpkg();
-			configMgr.enableVcpkg();
+			configMgr.disableVcpkg(true);
+			configMgr.enableVcpkg(true);
 			assert.equal(configMgr.isVcpkgEnabled(), true, "test enable vcpkg failed");
 	
-			configMgr.disableVcpkg();
+			configMgr.disableVcpkg(true);
 			assert.equal(configMgr.isVcpkgEnabled(), false, "test disable vcpkg failed");
 		}
 	});
