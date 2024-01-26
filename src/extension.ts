@@ -5,7 +5,9 @@ import * as vscode from 'vscode';
 import { ConfigurationManager } from './configuration';
 import {SettingsDocument} from './settingsDocument';
 import { VersionManager } from './versionManager';
+import {VcpkgLogMgr} from './log';
 
+let logMgr : VcpkgLogMgr;
 let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
 let disposables: vscode.Disposable[];
@@ -14,8 +16,10 @@ let disposables: vscode.Disposable[];
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	disposables = [];
+	
+	logMgr = new VcpkgLogMgr();
 	verMgr = new VersionManager();
-	configMgr = new ConfigurationManager(/*context, */verMgr);
+	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
