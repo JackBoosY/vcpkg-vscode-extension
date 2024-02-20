@@ -71,6 +71,13 @@ export function activate(context: vscode.ExtensionContext) {
 		  vscode.commands.executeCommand('workbench.action.openWalkthrough', 'JackBoosY.vcpkg-cmake-tools#start', false);
 		})
 	);
+
+	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
+        session => {
+			vcpkg_debugger.updateLaunchJson();
+			vcpkg_debugger.updateTasksJson();          
+        }
+    ))
 	
 	configMgr.logInfo('All the event are registered.');
 }

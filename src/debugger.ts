@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
+import { debug } from 'vscode';
 
 export class vcpkgDebugger {
     private TASKSJSON_FILENAME = "tasks";
@@ -10,7 +11,7 @@ export class vcpkgDebugger {
     constructor(logMgr: VcpkgLogMgr)
     {
         this._logMgr = logMgr;
-        
+
         this.updateTasksJson();
         this.updateLaunchJson();
     }
@@ -22,7 +23,28 @@ export class vcpkgDebugger {
 
     private getModifiedPorts()
     {
-        return "curl";
+        let ports = new Array;
+        let breakPoints = debug.breakpoints;
+        for (let index = 0; index < breakPoints.length; index++) {
+            const element = breakPoints[index];
+            if (element.location.uri.toString().search("portfile.cmake") !== -1) {
+                let valid = element.location.uri.toString().substring(element.location.uri.toString().search("ports/") + "ports/".length, element.location.uri.toString().search("/portfile.cmake"));
+                ports.push(valid);
+            }
+        }
+
+        if (!ports.length) {
+            return "";
+        }
+
+        // TODO: drop same port
+        let port_names = "";
+        for (let index = 0; index < ports.length; index++) {
+            port_names += ports[index];
+            port_names += " ";
+        }
+
+        return port_names;
     }
 
     private generateCommand()
@@ -31,7 +53,7 @@ export class vcpkgDebugger {
         return "\"${workspaceFolder}/vcpkg.exe\" remove " + modifiedPorts + " --recurse; & \"${workspaceFolder}/vcpkg.exe\" install " + modifiedPorts + " --no-binarycaching --x-cmake-debug \\\\.\\pipe\\vcpkg_ext_portfile_dbg";
     }
 
-    private updateTasksJson()
+    public updateTasksJson()
     {
         this._logMgr.logInfo("Updating tasks.json");
 
@@ -110,7 +132,7 @@ export class vcpkgDebugger {
         return this.readFromFile(this.LAUNCHJSON_FILENAME);
     }
 
-    private updateLaunchJson()
+    public updateLaunchJson()
     {
         this._logMgr.logInfo("Updating launch.json");
 
