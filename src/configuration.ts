@@ -250,7 +250,7 @@ export class ConfigurationManager implements vscode.Disposable
         }
     }
 
-    private isVcpkgEnabled()
+    public isVcpkgEnabled()
     {
         let oldPath = this.getVcpkgPathFromConfig();
 
