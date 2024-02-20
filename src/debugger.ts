@@ -11,19 +11,18 @@ export class vcpkgDebugger {
     {
         this._logMgr = logMgr;
         
-        let tmp = this.updateTasksJson();
+        this.updateTasksJson();
+        this.updateLaunchJson();
     }
 
     private getTasksJsonContent()
     {
-        let content = this.readFromFile(this.TASKSJSON_FILENAME);
-
-        return content;
+        return this.readFromFile(this.TASKSJSON_FILENAME);
     }
 
     private getModifiedPorts()
     {
-        return "zlib";
+        return "curl";
     }
 
     private generateCommand()
@@ -36,11 +35,11 @@ export class vcpkgDebugger {
     {
         this._logMgr.logInfo("Updating tasks.json");
 
-        const staticConfiguration = {
+        let modifiedConfig = new Array;
+        let staticConfiguration = {
             "label": "Debug vcpkg commands",
             "type": "shell",
             "command": "",
-            "sig": "vcpkg_vscode_extension",
             "problemMatcher": [
                 {
                     "pattern": [
@@ -62,10 +61,11 @@ export class vcpkgDebugger {
 
         let fullContent = this.getTasksJsonContent();
 
-        if (fullContent === null)
+        if (JSON.stringify(fullContent) === "{}")
         {
-            //fullContent["version"] = "2.0.0";
-            fullContent["tasks"];
+            staticConfiguration["command"] = this.generateCommand();
+            //fullContent.update("version", "2.0.0");
+            modifiedConfig.push(staticConfiguration);
         }
         else
         {
@@ -74,7 +74,7 @@ export class vcpkgDebugger {
                 let found = false;
                 for (let index = 0; index < fullContent["tasks"].length; index++) {
                     const element = fullContent["tasks"][index];
-                    if (element["sig"] === "vcpkg_vscode_extension")
+                    if (element["label"] === "Debug vcpkg commands")
                     {
                         this._logMgr.logInfo("Got exists tasks");
                         
@@ -83,26 +83,26 @@ export class vcpkgDebugger {
                         //TODO also needs to update other options
 
                         found = true;
-                        break;
                     }
+                    modifiedConfig.push(element);
                 }
-                if (!found) 
+                if (!found)
                 {
-                    let tmp = staticConfiguration;
-                    tmp["command"] = this.generateCommand();
+                    staticConfiguration["command"] = this.generateCommand();
+                    modifiedConfig.push(staticConfiguration);
+
                     this._logMgr.logInfo("Tasks json not found, new one.");
-                    fullContent["tasks"].push(tmp);
                 }
             }
             else
             {
-                fullContent["tasks"][0] = staticConfiguration;
-                fullContent["tasks"][0]["command"] = this.generateCommand();
+                staticConfiguration["command"] = this.generateCommand();
+                modifiedConfig.push(staticConfiguration);
                 this._logMgr.logInfo("Tasks json not found, new one.");
             }
         }
 
-        this.writeToFile(this.TASKSJSON_FILENAME, "tasks", fullContent["tasks"]);
+        this.writeToFile(this.TASKSJSON_FILENAME, "tasks", modifiedConfig);
     }
 
     private getLaunchJsonContent()
@@ -114,35 +114,43 @@ export class vcpkgDebugger {
     {
         this._logMgr.logInfo("Updating launch.json");
 
-        const staticConfiguration = {
+        let modifiedConfig = new Array;
+        let staticConfiguration = {
             "type": "cmake",
             "request": "launch",
-            "sig": "vcpkg_vscode_extension",
             "name": "Debug portfile(s)",
             "cmakeDebugType": "external",
             "pipeName": "\\\\.\\pipe\\vcpkg_ext_portfile_dbg",
             "preLaunchTask": "Debug vcpkg commands"};
 
         let fullContent = this.getLaunchJsonContent();
-        if (fullContent === null)
+        if (JSON.stringify(fullContent) === "{}")
         {
             // only needs to be updated since it's fixed.
-            fullContent["version"];// = "0.2.0";
-            fullContent["configurations"][0];// = staticConfiguration;
+            modifiedConfig.push(staticConfiguration);
+            //fullContent.update("version", "0.2.0");
         }
         else
         {
+            let found = false;
             for (let index = 0; index < fullContent["configurations"].length; index++) {
                 const element = fullContent["configurations"][index];
-                if (element["sig"] === "vcpkg_vscode_extension")
+                if (element["name"] === "Debug portfile(s)")
                 {
                     this._logMgr.logInfo("Got exists configurations");
                     fullContent["configurations"][index] = staticConfiguration;
-                    break;
+
+                    found = true;
                 }
+                
+                modifiedConfig.push(element);
+            }
+            if (!found)
+            {
+                modifiedConfig.push(staticConfiguration);
             }
         }
-        this.writeToFile(this.LAUNCHJSON_FILENAME, "configurations", fullContent["configurations"]);
+        this.writeToFile(this.LAUNCHJSON_FILENAME, "configurations", modifiedConfig);
     }
 
     private readFromFile(fileName: string)
