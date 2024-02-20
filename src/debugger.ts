@@ -88,29 +88,7 @@ export class vcpkgDebugger {
                 }
                 if (!found) 
                 {
-                    let tmp = {
-                        "label": "Debug vcpkg commands",
-                        "type": "shell",
-                        "command": "",
-                        "sig": "vcpkg_vscode_extension",
-                        "problemMatcher": [
-                            {
-                                "pattern": [
-                                    {
-                                        "regexp": "",
-                                        "file": 1,
-                                        "location": 2,
-                                        "message": 3
-                                    }
-                                ],
-                                "background": {
-                                    "activeOnStart": true,
-                                    "beginsPattern": ".",
-                                    "endsPattern": "Waiting for debugger client to connect"
-                                }
-                            }
-                        ]
-                    };
+                    let tmp = staticConfiguration;
                     tmp["command"] = this.generateCommand();
                     this._logMgr.logInfo("Tasks json not found, new one.");
                     fullContent["tasks"].push(tmp);
@@ -118,29 +96,7 @@ export class vcpkgDebugger {
             }
             else
             {
-                fullContent["tasks"][0] = {
-                    "label": "Debug vcpkg commands",
-                    "type": "shell",
-                    "command": "",
-                    "sig": "vcpkg_vscode_extension",
-                    "problemMatcher": [
-                        {
-                            "pattern": [
-                                {
-                                    "regexp": "",
-                                    "file": 1,
-                                    "location": 2,
-                                    "message": 3
-                                }
-                            ],
-                            "background": {
-                                "activeOnStart": true,
-                                "beginsPattern": ".",
-                                "endsPattern": "Waiting for debugger client to connect"
-                            }
-                        }
-                    ]
-                };
+                fullContent["tasks"][0] = staticConfiguration;
                 fullContent["tasks"][0]["command"] = this.generateCommand();
                 this._logMgr.logInfo("Tasks json not found, new one.");
             }
