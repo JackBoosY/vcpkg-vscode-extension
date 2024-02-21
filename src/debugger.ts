@@ -117,6 +117,7 @@ export class vcpkgDebugger {
         let staticConfiguration = {
             "label": "Debug vcpkg commands",
             "type": "shell",
+            "isBackground": true,
             "command": "",
             "problemMatcher": [
                 {
