@@ -6,7 +6,7 @@ import { ConfigurationManager } from './configuration';
 import {SettingsDocument} from './settingsDocument';
 import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
-import {VcpkgDebugger} from './debugger';
+import {VcpkgDebugger} from './vcpkgDebugger';
 
 let logMgr : VcpkgLogMgr;
 let configMgr : ConfigurationManager;
