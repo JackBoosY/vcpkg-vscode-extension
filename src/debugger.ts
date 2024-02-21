@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
 import { debug } from 'vscode';
 
-export class vcpkgDebugger {
-    private TASKSJSON_FILENAME = "tasks";
-    private LAUNCHJSON_FILENAME = "launch"
+export class VcpkgDebugger {
+    private tasksJsonFileName = "tasks";
+    private launchJsonFileName = "launch";
 
     private _logMgr : VcpkgLogMgr;
 
@@ -17,7 +17,7 @@ export class vcpkgDebugger {
 
     private getTasksJsonContent()
     {
-        return this.readFromFile(this.TASKSJSON_FILENAME);
+        return this.readFromFile(this.tasksJsonFileName);
     }
 
     private getModifiedPorts()
@@ -43,13 +43,13 @@ export class vcpkgDebugger {
         }
 
         // TODO: drop same port
-        let port_names = "";
+        let portNames = "";
         for (let index = 0; index < ports.length; index++) {
-            port_names += ports[index];
-            port_names += " ";
+            portNames += ports[index];
+            portNames += " ";
         }
 
-        return port_names;
+        return portNames;
     }
 
     private generateCommand()
@@ -58,7 +58,14 @@ export class vcpkgDebugger {
         if (modifiedPorts === "") {
             return "";
         }
-        return "\"${workspaceFolder}/vcpkg.exe\" remove " + modifiedPorts + " --recurse; & \"${workspaceFolder}/vcpkg.exe\" install " + modifiedPorts + " --no-binarycaching --x-cmake-debug \\\\.\\pipe\\vcpkg_ext_portfile_dbg";
+
+        let exeSuffix = "";
+        if (process.platform === "win32")
+        {
+            exeSuffix = ".exe";
+        }
+    
+        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --recurse; & \"${workspaceFolder}/vcpkg" + exeSuffix + "\" install " + modifiedPorts + " --no-binarycaching --x-cmake-debug \\\\.\\pipe\\vcpkg_ext_portfile_dbg";
     }
 
     private async cleanConfigurations()
@@ -78,7 +85,7 @@ export class vcpkgDebugger {
                         newConfigs.push(element);
                     }
                 }
-                await this.writeToFile(this.LAUNCHJSON_FILENAME, "configurations", newConfigs);
+                await this.writeToFile(this.launchJsonFileName, "configurations", newConfigs);
             }
         }
 
@@ -97,7 +104,7 @@ export class vcpkgDebugger {
                         newConfigs.push(element);
                     }
                 }
-                await this.writeToFile(this.TASKSJSON_FILENAME, "tasks", newConfigs);
+                await this.writeToFile(this.tasksJsonFileName, "tasks", newConfigs);
             }
         }
     }
@@ -202,12 +209,12 @@ export class vcpkgDebugger {
             }
         }
 
-        await this.writeToFile(this.TASKSJSON_FILENAME, "tasks", modifiedConfig);
+        await this.writeToFile(this.tasksJsonFileName, "tasks", modifiedConfig);
     }
 
     private getLaunchJsonContent()
     {
-        return this.readFromFile(this.LAUNCHJSON_FILENAME);
+        return this.readFromFile(this.launchJsonFileName);
     }
 
     private async updateLaunchJson()
@@ -258,7 +265,7 @@ export class vcpkgDebugger {
                 modifiedConfig.push(staticConfiguration);
             }
         }
-        await this.writeToFile(this.LAUNCHJSON_FILENAME, "configurations", modifiedConfig);
+        await this.writeToFile(this.launchJsonFileName, "configurations", modifiedConfig);
     }
 
     private readFromFile(fileName: string)

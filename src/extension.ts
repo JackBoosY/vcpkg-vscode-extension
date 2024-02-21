@@ -6,12 +6,12 @@ import { ConfigurationManager } from './configuration';
 import {SettingsDocument} from './settingsDocument';
 import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
-import {vcpkgDebugger} from './debugger';
+import {VcpkgDebugger} from './debugger';
 
 let logMgr : VcpkgLogMgr;
 let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
-let vcpkg_debugger : vcpkgDebugger;
+let vcpkgDebugger : VcpkgDebugger;
 let disposables: vscode.Disposable[];
 
 // This method is called when your extension is activated
@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
 	logMgr = new VcpkgLogMgr();
 	verMgr = new VersionManager();
 	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr);
-	vcpkg_debugger = new vcpkgDebugger(logMgr);
+	vcpkgDebugger = new VcpkgDebugger(logMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -74,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
-			vcpkg_debugger.updateConfigurations();   
+			vcpkgDebugger.updateConfigurations();   
         }
     ))
 	
