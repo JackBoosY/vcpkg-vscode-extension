@@ -17,6 +17,7 @@ export class VcpkgDebugger {
 
     private getTasksJsonContent()
     {
+        this._logMgr.logInfo("Loading tasks json content.");
         return this.readFromFile(this.tasksJsonFileName);
     }
 
@@ -39,12 +40,15 @@ export class VcpkgDebugger {
         }
 
         if (!ports.length) {
+            this._logMgr.logInfo("No valid breakpoint.");
             return "";
         }
 
         // TODO: drop same port
+        this._logMgr.logInfo("Breakpoints are from ports:");
         let portNames = "";
         for (let index = 0; index < ports.length; index++) {
+            this._logMgr.logInfo(ports[index]);
             portNames += ports[index];
             portNames += " ";
         }
@@ -54,6 +58,7 @@ export class VcpkgDebugger {
 
     private generateCommand()
     {
+        this._logMgr.logInfo("Genereating commands.");
         let modifiedPorts = this.getModifiedPorts();
         if (modifiedPorts === "") {
             return "";
@@ -70,6 +75,7 @@ export class VcpkgDebugger {
 
     private async cleanConfigurations()
     {
+        this._logMgr.logInfo("Cleanning debugging configurations");
         // clean launch json
         let fullContent = this.getLaunchJsonContent();
         if (JSON.stringify(fullContent) !== "{}")
@@ -111,6 +117,7 @@ export class VcpkgDebugger {
 
     public async updateConfigurations()
     {
+        this._logMgr.logInfo("Updating debugging configurations.");
         // update tasks json first since we may need to clean all configurations in update launch json
         this.updateTasksJson();
         this.updateLaunchJson();
@@ -149,6 +156,7 @@ export class VcpkgDebugger {
 
         if (JSON.stringify(fullContent) === "{}")
         {
+            this._logMgr.logInfo("No tasks.json file found, creating.");
             staticConfiguration["command"] = this.generateCommand();
             if (staticConfiguration["command"] === "") 
             {
@@ -168,7 +176,7 @@ export class VcpkgDebugger {
                     const element = fullContent["tasks"][index];
                     if (element["label"] === "Debug vcpkg commands")
                     {
-                        this._logMgr.logInfo("Got exists tasks");
+                        this._logMgr.logInfo("Found exists task, update now.");
                         
                         element["command"] = this.generateCommand();
                         if (element["command"] === "") 
@@ -185,6 +193,8 @@ export class VcpkgDebugger {
                 }
                 if (!found)
                 {
+                    this._logMgr.logInfo("Matched tasks not found, new one now.");
+
                     staticConfiguration["command"] = this.generateCommand();
                     if (staticConfiguration["command"] === "") 
                     {
@@ -192,12 +202,12 @@ export class VcpkgDebugger {
                         return;
                     }
                     modifiedConfig.push(staticConfiguration);
-
-                    this._logMgr.logInfo("Tasks json not found, new one.");
                 }
             }
             else
             {
+                this._logMgr.logInfo("Tasks item not found, new one now.");
+
                 staticConfiguration["command"] = this.generateCommand();
                 if (staticConfiguration["command"] === "") 
                 {
@@ -205,7 +215,6 @@ export class VcpkgDebugger {
                     return;
                 }
                 modifiedConfig.push(staticConfiguration);
-                this._logMgr.logInfo("Tasks json not found, new one.");
             }
         }
 
@@ -214,6 +223,7 @@ export class VcpkgDebugger {
 
     private getLaunchJsonContent()
     {
+        this._logMgr.logInfo("Loading launch json content.");
         return this.readFromFile(this.launchJsonFileName);
     }
 
@@ -233,6 +243,7 @@ export class VcpkgDebugger {
         let fullContent = this.getLaunchJsonContent();
         if (JSON.stringify(fullContent) === "{}")
         {
+            this._logMgr.logInfo("No launch.json file found, creating.");
             // only needs to be updated since it's fixed.
             modifiedConfig.push(staticConfiguration);
             //fullContent.update("version", "0.2.0");
@@ -247,7 +258,7 @@ export class VcpkgDebugger {
                     const element = fullContent["configurations"][index];
                     if (element["name"] === "Debug portfile(s)")
                     {
-                        this._logMgr.logInfo("Got exists configurations");
+                        this._logMgr.logInfo("Found exists configurations, update now.");
                         fullContent["configurations"][index] = staticConfiguration;
     
                         found = true;
@@ -257,11 +268,13 @@ export class VcpkgDebugger {
                 }
                 if (!found)
                 {
+                    this._logMgr.logInfo("Matched configurations items not found, new one now.");
                     modifiedConfig.push(staticConfiguration);
                 }
             }
             else
             {
+                this._logMgr.logInfo("Configurations itme not found, noew one now.");
                 modifiedConfig.push(staticConfiguration);
             }
         }
@@ -275,6 +288,7 @@ export class VcpkgDebugger {
 
     private async writeToFile(fileName: string, scope: string, content: object)
     {
+        this._logMgr.logInfo("Updating " + fileName + " - " + scope);
         await vscode.workspace.getConfiguration(fileName).update(scope, content, null);
     }
 }
