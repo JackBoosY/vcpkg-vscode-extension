@@ -74,8 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
-			vcpkg_debugger.updateLaunchJson();
-			vcpkg_debugger.updateTasksJson();          
+			vcpkg_debugger.updateConfigurations();   
         }
     ))
 	

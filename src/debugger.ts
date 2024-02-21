@@ -12,8 +12,7 @@ export class vcpkgDebugger {
     {
         this._logMgr = logMgr;
 
-        this.updateTasksJson();
-        this.updateLaunchJson();
+        this.updateConfigurations();
     }
 
     private getTasksJsonContent()
@@ -27,7 +26,13 @@ export class vcpkgDebugger {
         let breakPoints = debug.breakpoints;
         for (let index = 0; index < breakPoints.length; index++) {
             const element = breakPoints[index];
+            if (!element.enabled)
+            {
+                continue;
+            }
+             // @ts-ignore
             if (element.location.uri.toString().search("portfile.cmake") !== -1) {
+                 // @ts-ignore
                 let valid = element.location.uri.toString().substring(element.location.uri.toString().search("ports/") + "ports/".length, element.location.uri.toString().search("/portfile.cmake"));
                 ports.push(valid);
             }
@@ -50,10 +55,61 @@ export class vcpkgDebugger {
     private generateCommand()
     {
         let modifiedPorts = this.getModifiedPorts();
+        if (modifiedPorts === "") {
+            return "";
+        }
         return "\"${workspaceFolder}/vcpkg.exe\" remove " + modifiedPorts + " --recurse; & \"${workspaceFolder}/vcpkg.exe\" install " + modifiedPorts + " --no-binarycaching --x-cmake-debug \\\\.\\pipe\\vcpkg_ext_portfile_dbg";
     }
 
-    public updateTasksJson()
+    private async cleanConfigurations()
+    {
+        // clean launch json
+        let fullContent = this.getLaunchJsonContent();
+        if (JSON.stringify(fullContent) !== "{}")
+        {
+            if (fullContent.has("configurations"))
+            {
+                let newConfigs = new Array;
+                for (let index = 0; index < fullContent["configurations"].length; index++) 
+                {
+                    const element = fullContent["configurations"][index];
+                    if (element["name"] !== "Debug portfile(s)")
+                    {
+                        newConfigs.push(element);
+                    }
+                }
+                await this.writeToFile(this.LAUNCHJSON_FILENAME, "configurations", newConfigs);
+            }
+        }
+
+        // clean tasks json
+        fullContent = this.getTasksJsonContent();
+        if (JSON.stringify(fullContent) !== "{}")
+        {
+            if (fullContent.has("tasks"))
+            {
+                let newConfigs = new Array;
+                for (let index = 0; index < fullContent["tasks"].length; index++) 
+                {
+                    const element = fullContent["tasks"][index];
+                    if (element["label"] !== "Debug vcpkg commands")
+                    {
+                        newConfigs.push(element);
+                    }
+                }
+                await this.writeToFile(this.TASKSJSON_FILENAME, "tasks", newConfigs);
+            }
+        }
+    }
+
+    public async updateConfigurations()
+    {
+        // update tasks json first since we may need to clean all configurations in update launch json
+        this.updateTasksJson();
+        this.updateLaunchJson();
+    }
+
+    private async updateTasksJson()
     {
         this._logMgr.logInfo("Updating tasks.json");
 
@@ -86,6 +142,11 @@ export class vcpkgDebugger {
         if (JSON.stringify(fullContent) === "{}")
         {
             staticConfiguration["command"] = this.generateCommand();
+            if (staticConfiguration["command"] === "") 
+            {
+                this.cleanConfigurations();
+                return;
+            }
             //fullContent.update("version", "2.0.0");
             modifiedConfig.push(staticConfiguration);
         }
@@ -94,13 +155,19 @@ export class vcpkgDebugger {
             if (fullContent.has("tasks"))
             {
                 let found = false;
-                for (let index = 0; index < fullContent["tasks"].length; index++) {
+                for (let index = 0; index < fullContent["tasks"].length; index++) 
+                {
                     const element = fullContent["tasks"][index];
                     if (element["label"] === "Debug vcpkg commands")
                     {
                         this._logMgr.logInfo("Got exists tasks");
                         
                         element["command"] = this.generateCommand();
+                        if (element["command"] === "") 
+                        {
+                            this.cleanConfigurations();
+                            return;
+                        }
 
                         //TODO also needs to update other options
 
@@ -111,6 +178,11 @@ export class vcpkgDebugger {
                 if (!found)
                 {
                     staticConfiguration["command"] = this.generateCommand();
+                    if (staticConfiguration["command"] === "") 
+                    {
+                        this.cleanConfigurations();
+                        return;
+                    }
                     modifiedConfig.push(staticConfiguration);
 
                     this._logMgr.logInfo("Tasks json not found, new one.");
@@ -119,12 +191,17 @@ export class vcpkgDebugger {
             else
             {
                 staticConfiguration["command"] = this.generateCommand();
+                if (staticConfiguration["command"] === "") 
+                {
+                    this.cleanConfigurations();
+                    return;
+                }
                 modifiedConfig.push(staticConfiguration);
                 this._logMgr.logInfo("Tasks json not found, new one.");
             }
         }
 
-        this.writeToFile(this.TASKSJSON_FILENAME, "tasks", modifiedConfig);
+        await this.writeToFile(this.TASKSJSON_FILENAME, "tasks", modifiedConfig);
     }
 
     private getLaunchJsonContent()
@@ -132,7 +209,7 @@ export class vcpkgDebugger {
         return this.readFromFile(this.LAUNCHJSON_FILENAME);
     }
 
-    public updateLaunchJson()
+    private async updateLaunchJson()
     {
         this._logMgr.logInfo("Updating launch.json");
 
@@ -154,25 +231,33 @@ export class vcpkgDebugger {
         }
         else
         {
-            let found = false;
-            for (let index = 0; index < fullContent["configurations"].length; index++) {
-                const element = fullContent["configurations"][index];
-                if (element["name"] === "Debug portfile(s)")
+            if (fullContent.has("configurations"))
+            {
+                let found = false;
+                for (let index = 0; index < fullContent["configurations"].length; index++) 
                 {
-                    this._logMgr.logInfo("Got exists configurations");
-                    fullContent["configurations"][index] = staticConfiguration;
-
-                    found = true;
+                    const element = fullContent["configurations"][index];
+                    if (element["name"] === "Debug portfile(s)")
+                    {
+                        this._logMgr.logInfo("Got exists configurations");
+                        fullContent["configurations"][index] = staticConfiguration;
+    
+                        found = true;
+                    }
+                    
+                    modifiedConfig.push(element);
                 }
-                
-                modifiedConfig.push(element);
+                if (!found)
+                {
+                    modifiedConfig.push(staticConfiguration);
+                }
             }
-            if (!found)
+            else
             {
                 modifiedConfig.push(staticConfiguration);
             }
         }
-        this.writeToFile(this.LAUNCHJSON_FILENAME, "configurations", modifiedConfig);
+        await this.writeToFile(this.LAUNCHJSON_FILENAME, "configurations", modifiedConfig);
     }
 
     private readFromFile(fileName: string)
@@ -180,8 +265,8 @@ export class vcpkgDebugger {
         return vscode.workspace.getConfiguration(fileName);
     }
 
-    private writeToFile(fileName: string, scope: string, content: object)
+    private async writeToFile(fileName: string, scope: string, content: object)
     {
-        vscode.workspace.getConfiguration(fileName).update(scope, content);
+        await vscode.workspace.getConfiguration(fileName).update(scope, content, null);
     }
 }
