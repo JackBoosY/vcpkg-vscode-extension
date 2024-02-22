@@ -6,11 +6,13 @@ import { ConfigurationManager } from './configuration';
 import {SettingsDocument} from './settingsDocument';
 import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
+import {CmakeDebugger} from './cmakeDebugger';
 
 let logMgr : VcpkgLogMgr;
 let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
 let disposables: vscode.Disposable[];
+let cmakeDbg: CmakeDebugger;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -20,6 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
 	logMgr = new VcpkgLogMgr();
 	verMgr = new VersionManager();
 	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr);
+	cmakeDbg = new CmakeDebugger(logMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -68,6 +71,12 @@ export function activate(context: vscode.ExtensionContext) {
 		  vscode.commands.executeCommand('workbench.action.openWalkthrough', 'JackBoosY.vcpkg-cmake-tools#start', false);
 		})
 	);
+
+	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
+        session => {
+			cmakeDbg.updateConfigurations();   
+        }
+    ))
 	
 	configMgr.logInfo('All the event are registered.');
 }

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
 
-export class VcpkgDebugger {
+export class CmakeDebugger {
     private _logMgr : VcpkgLogMgr;
 
     constructor(logMgr : VcpkgLogMgr)
@@ -21,5 +21,10 @@ export class VcpkgDebugger {
         let pipeline = this.generatePipeline();
 
         process.env[envName] = pipeline;
+    }
+
+    public updateConfigurations()
+    {
+        
     }
 }
