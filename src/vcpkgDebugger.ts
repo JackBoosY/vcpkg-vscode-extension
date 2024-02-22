@@ -56,6 +56,18 @@ export class VcpkgDebugger {
         return portNames;
     }
 
+    private getDebuggerPipe()
+    {
+        if (process.platform === 'win32') 
+        {
+            return "\\\\.\\pipe\\vcpkg_ext_portfile_dbg";
+        }
+        else
+        {
+            return "/tmp/vcpkg_ext_portfile_dbg";
+        }
+    }
+
     private generateCommand()
     {
         this._logMgr.logInfo("Genereating commands.");
@@ -70,7 +82,7 @@ export class VcpkgDebugger {
             exeSuffix = ".exe";
         }
     
-        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --recurse; & \"${workspaceFolder}/vcpkg" + exeSuffix + "\" install " + modifiedPorts + " --no-binarycaching --x-cmake-debug \\\\.\\pipe\\vcpkg_ext_portfile_dbg";
+        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --recurse; & \"${workspaceFolder}/vcpkg" + exeSuffix + "\" install " + modifiedPorts + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
     }
 
     private async cleanConfigurations()
@@ -237,7 +249,7 @@ export class VcpkgDebugger {
             "request": "launch",
             "name": "Debug portfile(s)",
             "cmakeDebugType": "external",
-            "pipeName": "\\\\.\\pipe\\vcpkg_ext_portfile_dbg",
+            "pipeName": + this.getDebuggerPipe(),
             "preLaunchTask": "Debug vcpkg commands"};
 
         let fullContent = this.getLaunchJsonContent();
