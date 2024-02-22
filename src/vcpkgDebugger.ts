@@ -35,7 +35,10 @@ export class VcpkgDebugger {
             if (element.location.uri.toString().search("portfile.cmake") !== -1) {
                  // @ts-ignore
                 let valid = element.location.uri.toString().substring(element.location.uri.toString().search("ports/") + "ports/".length, element.location.uri.toString().search("/portfile.cmake"));
-                ports.push(valid);
+                if (ports.indexOf(valid) === -1) 
+                {
+                    ports.push(valid);
+                }
             }
         }
 
@@ -44,7 +47,6 @@ export class VcpkgDebugger {
             return "";
         }
 
-        // TODO: drop same port
         this._logMgr.logInfo("Breakpoints are from ports:");
         let portNames = "";
         for (let index = 0; index < ports.length; index++) {
@@ -189,17 +191,20 @@ export class VcpkgDebugger {
                     if (element["label"] === "Debug vcpkg commands")
                     {
                         this._logMgr.logInfo("Found exists task, update now.");
-                        
-                        element["command"] = this.generateCommand();
+
+                        let newData = staticConfiguration;
+                        newData["command"] = this.generateCommand();
                         if (element["command"] === "") 
                         {
                             this.cleanConfigurations();
                             return;
                         }
 
-                        //TODO also needs to update other options
-
+                        // update new command
+                        modifiedConfig.push(newData);
                         found = true;
+
+                        continue;
                     }
                     modifiedConfig.push(element);
                 }
