@@ -79,8 +79,8 @@ export function activate(context: vscode.ExtensionContext) {
     ));
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(
-		Session => {
-			if (Session.name === "Debug portfile(s)") 
+		session => {
+			if (session.name === "Debug portfile(s)") 
 			{
 				let root = configMgr.getVcpkgRealPath();
 				configMgr.showCurrentTriplet().then(triplet => {
@@ -91,8 +91,8 @@ export function activate(context: vscode.ExtensionContext) {
 	));
 
 	context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(
-		Session => {
-			if (Session.name === "Debug portfile(s)") 
+		session => {
+			if (session.name === "Debug portfile(s)") 
 			{
 				cmakeDbg.stopWaitingDebug();
 			}
