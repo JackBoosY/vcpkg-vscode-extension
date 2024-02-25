@@ -1,14 +1,20 @@
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
 import { debug } from 'vscode';
-import { execSync } from 'child_process';
+import * as fs from 'fs'; 
+
+function sleep(time: number){
+    return new Promise((resolve) => setTimeout(resolve, time));
+   }
 
 export class CmakeDebugger {
     private _logMgr : VcpkgLogMgr;
+    private _waitDebug : boolean;
 
     constructor(logMgr : VcpkgLogMgr)
     {
         this._logMgr = logMgr;
+        this._waitDebug = false;
 
         this.updateConfigurations();
     }
@@ -67,10 +73,42 @@ export class CmakeDebugger {
         }
     }
 
-    public async startDebugging()
+    public stopWaitingDebug()
     {
+        this._waitDebug = false;
+    }
+
+    public async startDebugging(vcpkgRoot: any, currentTriplet : any)
+    {
+        if (vcpkgRoot === undefined || currentTriplet === undefined) 
+        {
+            this._logMgr.logErr("vcpkgRoot(" + vcpkgRoot + ") or currentTriplet(" + currentTriplet + ") is undefined!");
+            return;
+        }
+        let portName = "zlib";
+        let outName = vcpkgRoot + "buildtrees//" + portName + "//stdout-" + currentTriplet + ".log";
+        let content = "";
+        let whenConfigure = false;
+
+        // wait for configure
+        this._waitDebug = true;
+        do {
+            if (!this._waitDebug) 
+            {
+                this._logMgr.logInfo("Cancel debug CMakeLists.");
+                return;
+            }
+            content = fs.readFileSync(outName, { encoding: 'utf8', flag: 'r' });
+            await sleep(100);
+            if (content.search("-- Configuring ") !== -1) {
+                whenConfigure = true;
+            }
+        } while (!whenConfigure);
+
+        this._waitDebug = false;
+
         this._logMgr.logInfo("Start debugging CMakeLists.");
-        await vscode.debug.startDebugging(undefined, {
+        vscode.debug.startDebugging(undefined, {
             name: "Vcpkg extension Debugger",
             request: "launch",
             type: "cmake",

@@ -78,11 +78,24 @@ export function activate(context: vscode.ExtensionContext) {
         }
     ));
 
-	disposables.push(vscode.commands.registerCommand('vcpkg-integration.debug_cmake', async() => await cmakeDbg.startDebugging()));
-
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(
 		Session => {
-			//cmakeDbg.startDebugging();
+			if (Session.name === "Debug portfile(s)") 
+			{
+				let root = configMgr.getVcpkgRealPath();
+				configMgr.showCurrentTriplet().then(triplet => {
+					cmakeDbg.startDebugging(root, triplet);
+				});
+			}
+		}
+	));
+
+	context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(
+		Session => {
+			if (Session.name === "Debug portfile(s)") 
+			{
+				cmakeDbg.stopWaitingDebug();
+			}
 		}
 	));
 
