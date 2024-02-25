@@ -93,7 +93,7 @@
       },
       {
         "command": "vcpkg-integration.debug_cmake",
-        "title": "Debug cmake",
+        "title": "Debug port's CMake code",
         "category": "vcpkg"
       }
     ],

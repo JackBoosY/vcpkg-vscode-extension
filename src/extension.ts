@@ -82,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(
 		Session => {
-			cmakeDbg.startDebugging();
+			//cmakeDbg.startDebugging();
 		}
 	));
 
