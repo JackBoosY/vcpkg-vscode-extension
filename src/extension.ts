@@ -76,10 +76,25 @@ export function activate(context: vscode.ExtensionContext) {
         session => {
 			cmakeDbg.updateConfigurations();   
         }
-    ))
+    ));
+
+	disposables.push(vscode.commands.registerCommand('vcpkg-integration.debug_cmake', async() => await cmakeDbg.startDebugging()));
+
+	context.subscriptions.push(vscode.debug.onDidStartDebugSession(
+		Session => {
+			cmakeDbg.startDebugging();
+		}
+	));
+
+	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
+        session => {
+			cmakeDbg.updateConfigurations();   
+        }
+	));
 	
 	configMgr.logInfo('All the event are registered.');
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
+

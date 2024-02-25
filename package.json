@@ -90,6 +90,11 @@
         "command": "vcpkg-integration.use_dynamic_lib",
         "title": "Use dynamic library",
         "category": "vcpkg"
+      },
+      {
+        "command": "vcpkg-integration.debug_cmake",
+        "title": "Debug cmake",
+        "category": "vcpkg"
       }
     ],
     "configuration": {
