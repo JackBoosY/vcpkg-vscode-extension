@@ -172,7 +172,7 @@ export class VcpkgDebugger {
         {
             this._logMgr.logInfo("No tasks.json file found, creating.");
             staticConfiguration["command"] = this.generateCommand();
-            if (staticConfiguration["command"] === "") 
+            if (!staticConfiguration["command"].length) 
             {
                 this.cleanConfigurations();
                 return;
@@ -194,7 +194,7 @@ export class VcpkgDebugger {
 
                         let newData = staticConfiguration;
                         newData["command"] = this.generateCommand();
-                        if (element["command"] === "") 
+                        if (!newData["command"].length) 
                         {
                             this.cleanConfigurations();
                             return;
@@ -213,7 +213,7 @@ export class VcpkgDebugger {
                     this._logMgr.logInfo("Matched tasks not found, new one now.");
 
                     staticConfiguration["command"] = this.generateCommand();
-                    if (staticConfiguration["command"] === "") 
+                    if (!staticConfiguration["command"].length) 
                     {
                         this.cleanConfigurations();
                         return;
@@ -226,7 +226,7 @@ export class VcpkgDebugger {
                 this._logMgr.logInfo("Tasks item not found, new one now.");
 
                 staticConfiguration["command"] = this.generateCommand();
-                if (staticConfiguration["command"] === "") 
+                if (!staticConfiguration["command"].length) 
                 {
                     this.cleanConfigurations();
                     return;
@@ -254,7 +254,7 @@ export class VcpkgDebugger {
             "request": "launch",
             "name": "Debug portfile(s)",
             "cmakeDebugType": "external",
-            "pipeName": + this.getDebuggerPipe(),
+            "pipeName": this.getDebuggerPipe(),
             "preLaunchTask": "Debug vcpkg commands"};
 
         let fullContent = this.getLaunchJsonContent();
@@ -276,12 +276,16 @@ export class VcpkgDebugger {
                     if (element["name"] === "Debug portfile(s)")
                     {
                         this._logMgr.logInfo("Found exists configurations, update now.");
-                        fullContent["configurations"][index] = staticConfiguration;
+                        //fullContent["configurations"][index] = staticConfiguration;
+                        modifiedConfig.push(staticConfiguration);
     
                         found = true;
                     }
+                    else
+                    {
+                        modifiedConfig.push(element);
+                    }
                     
-                    modifiedConfig.push(element);
                 }
                 if (!found)
                 {
