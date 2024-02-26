@@ -42,9 +42,17 @@ export class VcpkgDebugger {
             }
         }
 
-        if (!ports.length) {
+        if (!ports.length) 
+        {
             this._logMgr.logInfo("No valid breakpoint.");
             return "";
+        }
+
+        if (ports.length !== 1) 
+        {
+            this._logMgr.logInfo("Detected multiple ports. Not supported.");
+            vscode.window.showErrorMessage("Only supports to set breakpoint in one port!");
+            return;
         }
 
         this._logMgr.logInfo("Breakpoints are from ports:");
