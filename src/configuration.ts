@@ -225,7 +225,7 @@ export class ConfigurationManager implements vscode.Disposable
         return undefined;
     }
 
-    public getVcpkgPathFromConfig()
+    private getVcpkgPathFromConfig()
     {
         let tryFirst = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
 
