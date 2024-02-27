@@ -215,7 +215,7 @@ export class CmakeDebugger {
         }
         let portName = this._vcpkgDbg.getModifiedPorts();
         portName = portName?.replace(" ", "");
-        let outName = vcpkgRoot + "//buildtrees//" + portName + "//stdout-" + currentTriplet + ".log";
+        let outName = vcpkgRoot + "/buildtrees/" + portName + "/stdout-" + currentTriplet + ".log";
         let content = "";
         let whenConfigure = false;
 

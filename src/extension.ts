@@ -86,7 +86,15 @@ export function activate(context: vscode.ExtensionContext) {
 		session => {
 			if (session.name === "Debug portfile(s)") 
 			{
-				let root = configMgr.getVcpkgRealPath();
+				let root : any;
+				if(vscode.workspace.workspaceFolders !== undefined) 
+				{
+					root = vscode.workspace.workspaceFolders[0].uri.fsPath; 
+				}
+				else
+				{
+					root = configMgr.getVcpkgRealPath();
+				}
 				configMgr.getCurrentTriplet().then(triplet => {
 					cmakeDbg.startDebugging(root, triplet);
 				});
