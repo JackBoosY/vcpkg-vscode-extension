@@ -86,6 +86,7 @@ export function activate(context: vscode.ExtensionContext) {
 		session => {
 			if (session.name === "Debug portfile(s)") 
 			{
+				logMgr.logInfo("Starting debug portfile.");
 				let root : any;
 				if(vscode.workspace.workspaceFolders !== undefined) 
 				{
@@ -106,6 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
 		session => {
 			if (session.name === "Debug portfile(s)") 
 			{
+				logMgr.logInfo("Stop debug.");
 				cmakeDbg.stopWaitingDebug();
 			}
 		}

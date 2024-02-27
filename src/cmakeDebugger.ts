@@ -208,11 +208,20 @@ export class CmakeDebugger {
 
     public async startDebugging(vcpkgRoot: any, currentTriplet : any)
     {
-        if (vcpkgRoot === undefined || currentTriplet === undefined) 
+        this._logMgr.logInfo("Starting debug cmake.");
+        if (vcpkgRoot === undefined || !vcpkgRoot.length) 
         {
-            this._logMgr.logErr("vcpkgRoot(" + vcpkgRoot + ") or currentTriplet(" + currentTriplet + ") is undefined!");
+            this._logMgr.logErr("vcpkgRoot(" + vcpkgRoot + ") is empty!");
+            vscode.window.showErrorMessage("Vcpkg root is empty! Please manually set.");
             return;
         }
+        else if (currentTriplet === undefined || !currentTriplet.length)
+        {
+            this._logMgr.logErr("currentTriplet(" + currentTriplet + ") is empty!");
+            vscode.window.showErrorMessage("Current triplet is empty! Please manually set.");
+            return;
+        }
+
         let portName = this._vcpkgDbg.getModifiedPorts();
         portName = portName?.replace(" ", "");
         let outName = vcpkgRoot + "/buildtrees/" + portName + "/stdout-" + currentTriplet + ".log";
@@ -220,6 +229,7 @@ export class CmakeDebugger {
         let whenConfigure = false;
 
         // wait for configure
+        this._logMgr.logInfo("Waiting for configure, reading output in " + outName);
         this._waitDebug = true;
         do {
             if (!this._waitDebug) 
@@ -237,7 +247,7 @@ export class CmakeDebugger {
 
         this._waitDebug = false;
 
-        this._logMgr.logInfo("Start debugging CMakeLists.");
+        this._logMgr.logInfo("Connecting cmake debug pipe.");
         vscode.debug.startDebugging(undefined, {
             name: "Vcpkg extension Debugger",
             request: "launch",
