@@ -218,7 +218,7 @@ export class CmakeDebugger {
         else if (currentTriplet === undefined || !currentTriplet.length)
         {
             this._logMgr.logErr("currentTriplet(" + currentTriplet + ") is empty!");
-            vscode.window.showErrorMessage("Current triplet is empty! Please manually set.");
+            vscode.window.showErrorMessage("Current default triplet is empty! Please manually set first.");
             return;
         }
 

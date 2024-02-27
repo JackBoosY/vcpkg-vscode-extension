@@ -77,8 +77,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
-            vcpkgDebugger.updateConfigurations();
-			cmakeDbg.updateConfigurations();
+			configMgr.getCurrentTriplet().then(triplet => {
+				if (vcpkgDebugger.setDefaultTriplet(triplet))
+				{
+					vcpkgDebugger.updateConfigurations();
+					cmakeDbg.updateConfigurations();
+				}
+			});
         }
     ));
 
