@@ -24,8 +24,8 @@ export function activate(context: vscode.ExtensionContext) {
 	logMgr = new VcpkgLogMgr();
 	verMgr = new VersionManager();
 	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr);
-	cmakeDbg = new CmakeDebugger(logMgr);
 	vcpkgDebugger = new VcpkgDebugger(logMgr);
+	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -87,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (session.name === "Debug portfile(s)") 
 			{
 				let root = configMgr.getVcpkgRealPath();
-				configMgr.showCurrentTriplet().then(triplet => {
+				configMgr.getCurrentTriplet().then(triplet => {
 					cmakeDbg.startDebugging(root, triplet);
 				});
 			}

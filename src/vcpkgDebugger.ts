@@ -21,7 +21,7 @@ export class VcpkgDebugger {
         return this.readFromFile(this.tasksJsonFileName);
     }
 
-    private getModifiedPorts()
+    public getModifiedPorts()
     {
         let ports = new Array;
         let breakPoints = debug.breakpoints;

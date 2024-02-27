@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
+import {VcpkgDebugger} from './vcpkgDebugger';
 import { debug } from 'vscode';
 import * as fs from 'fs'; 
 
@@ -8,11 +9,13 @@ function sleep(time: number){
    }
 
 export class CmakeDebugger {
+    private _vcpkgDbg: VcpkgDebugger;
     private _logMgr : VcpkgLogMgr;
     private _waitDebug : boolean;
 
-    constructor(logMgr : VcpkgLogMgr)
+    constructor(vcpkgDebugger: VcpkgDebugger, logMgr : VcpkgLogMgr)
     {
+        this._vcpkgDbg = vcpkgDebugger;
         this._logMgr = logMgr;
         this._waitDebug = false;
 
@@ -31,17 +34,142 @@ export class CmakeDebugger {
         }
     }
 
-    private updateConfig()
+    private getTasksJsonContent()
     {
-        let config = "--x-cmake-configure-debug=" + this.generatePipeline();
-        // TODO
-        this._logMgr.logInfo("Add pipe " + config + " in Tasks json command");
+        this._logMgr.logInfo("Loading tasks json content.");
+        return this.readFromFile("tasks");
     }
 
-    private cleanConfig()
+    private async updateConfig()
     {
-        // TODO
-        this._logMgr.logInfo("Clean pipe in Tasks json command.");
+        this._logMgr.logInfo("Updating tasks.json");
+
+        let fullContent = this.getTasksJsonContent();
+
+        if (JSON.stringify(fullContent) === "{}")
+        {
+            this._logMgr.logErr("tasks json is empty!");
+            return;
+        }
+        else
+        {
+            if (fullContent.has("tasks"))
+            {
+                let taskArray = new Array;
+                let originCommand = "";
+                let currTask;
+                for (let index = 0; index < fullContent["tasks"].length; index++) 
+                {
+                    const element = fullContent["tasks"][index];
+                    if (element["label"] === "Debug vcpkg commands")
+                    {
+                        this._logMgr.logInfo("Found exists task, update now.");
+
+                        currTask = element;
+                        originCommand = element["command"];
+                    }
+                    else
+                    {
+                        taskArray.push(element);
+                    }
+                }
+
+                if (originCommand) 
+                {
+                    if (originCommand.indexOf("--x-cmake-configure-debug") === -1)
+                    {
+                        let config = originCommand + " --x-cmake-configure-debug " + this.generatePipeline() + " --editable";
+                        currTask["command"] = config;
+
+                        taskArray.push(currTask);
+    
+                        this._logMgr.logInfo("Update command " + config + " in Tasks json command");
+                        await this.writeToFile("tasks", "tasks", taskArray);
+                    }
+                    else
+                    {
+                        this._logMgr.logInfo("Already update command");
+                    }
+                }
+            }
+            else
+            {
+                this._logMgr.logInfo("Tasks item not found, new one now.");
+                return;
+            }
+        }
+    }
+
+    private readFromFile(fileName: string)
+    {
+        return vscode.workspace.getConfiguration(fileName);
+    }
+
+    private async writeToFile(fileName: string, scope: string, content: any)
+    {
+        this._logMgr.logInfo("Updating " + fileName + " - " + scope);
+        await vscode.workspace.getConfiguration(fileName).update(scope, content, null);
+    }
+
+    private async cleanConfig()
+    {
+        this._logMgr.logInfo("Clean command in Tasks json command.");
+
+        let fullContent = this.getTasksJsonContent();
+
+        if (JSON.stringify(fullContent) === "{}")
+        {
+            this._logMgr.logErr("tasks json is empty!");
+            return;
+        }
+        else
+        {
+            if (fullContent.has("tasks"))
+            {
+                let taskArray = new Array;
+                let originCommand = "";
+                let currTask;
+                for (let index = 0; index < fullContent["tasks"].length; index++) 
+                {
+                    const element = fullContent["tasks"][index];
+                    if (element["label"] === "Debug vcpkg commands")
+                    {
+                        this._logMgr.logInfo("Found exists task, update now.");
+
+                        currTask = element;
+                        originCommand = element["command"];
+                    }
+                    else
+                    {
+                        taskArray.push(element);
+                    }
+                }
+
+                if (originCommand) 
+                {
+                    if (currTask["command"].indexOf(" --x-cmake-configure-debug") !== -1) 
+                    {
+                        let config = currTask["command"];
+                        config = config.substring(0, config.indexOf(" --x-cmake-configure-debug"));
+                        currTask["command"] = config;
+    
+                        taskArray.push(currTask);
+    
+                        this._logMgr.logInfo("Delete command in Tasks json command");
+                        await this.writeToFile("tasks", "tasks", taskArray);
+                    }
+                    else
+                    {
+                        this._logMgr.logInfo("Command is alreay cleaned.");
+                    }
+                }
+            }
+            else
+            {
+                this._logMgr.logInfo("Tasks item not found, new one now.");
+                return;
+            }
+        }
     }
 
     public updateConfigurations()
@@ -85,8 +213,9 @@ export class CmakeDebugger {
             this._logMgr.logErr("vcpkgRoot(" + vcpkgRoot + ") or currentTriplet(" + currentTriplet + ") is undefined!");
             return;
         }
-        let portName = "zlib";
-        let outName = vcpkgRoot + "buildtrees//" + portName + "//stdout-" + currentTriplet + ".log";
+        let portName = this._vcpkgDbg.getModifiedPorts();
+        portName = portName?.replace(" ", "");
+        let outName = vcpkgRoot + "//buildtrees//" + portName + "//stdout-" + currentTriplet + ".log";
         let content = "";
         let whenConfigure = false;
 
@@ -100,7 +229,8 @@ export class CmakeDebugger {
             }
             content = fs.readFileSync(outName, { encoding: 'utf8', flag: 'r' });
             await sleep(100);
-            if (content.search("-- Configuring ") !== -1) {
+            if (content.search("-- Configuring ") !== -1 && content.search("-- Performing post-build validation") === -1) 
+            {
                 whenConfigure = true;
             }
         } while (!whenConfigure);
