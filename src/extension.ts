@@ -7,10 +7,12 @@ import {SettingsDocument} from './settingsDocument';
 import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
 import {CmakeDebugger} from './cmakeDebugger';
+import {VcpkgDebugger} from './vcpkgDebugger';
 
 let logMgr : VcpkgLogMgr;
 let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
+let vcpkgDebugger : VcpkgDebugger;
 let disposables: vscode.Disposable[];
 let cmakeDbg: CmakeDebugger;
 
@@ -23,6 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 	verMgr = new VersionManager();
 	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr);
 	cmakeDbg = new CmakeDebugger(logMgr);
+	vcpkgDebugger = new VcpkgDebugger(logMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -74,7 +77,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
-			cmakeDbg.updateConfigurations();   
+            vcpkgDebugger.updateConfigurations();
+			cmakeDbg.updateConfigurations();
         }
     ));
 
@@ -97,12 +101,6 @@ export function activate(context: vscode.ExtensionContext) {
 				cmakeDbg.stopWaitingDebug();
 			}
 		}
-	));
-
-	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
-        session => {
-			cmakeDbg.updateConfigurations();   
-        }
 	));
 	
 	configMgr.logInfo('All the event are registered.');

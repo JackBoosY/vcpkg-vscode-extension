@@ -95,3 +95,8 @@ Note: please only enable/disable in `workspace`!
 1. Enable vcpkg integration.
 2. Set vcpkg path.
 3. Autocompletion will be enabled automatically when typing `"`.
+
+### Debug portfile or other vcpkg provided cmake code
+
+1. Set debug point in the portfile.cmake (required) or other cmake file.
+2. Open `Run and Debug` in left side bar, select `Debug portfile(s)`, click the green triangle to run debugging.
