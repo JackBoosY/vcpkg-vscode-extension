@@ -98,5 +98,11 @@ Note: please only enable/disable in `workspace`!
 
 ### Debug portfile or other vcpkg provided cmake code
 
-1. Set debug point in the portfile.cmake (required) or other cmake file.
+1. Set breakpoint in the portfile.cmake (required) or other cmake file.
 2. Open `Run and Debug` in left side bar, select `Debug portfile(s)`, click the green triangle to run debugging.
+
+### Debug port's CMake code
+
+1. Set breakpoint in the portfile.cmake.
+2. Run install command with `--editable`(important!) then set breakpoint in source cmake file(folder name without `.clean`).
+3. Open `Run and Debug` in left side bar, select `Debug portfile(s)`, click the green triangle to run debugging.

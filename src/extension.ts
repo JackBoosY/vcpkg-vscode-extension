@@ -6,6 +6,7 @@ import { ConfigurationManager } from './configuration';
 import {SettingsDocument} from './settingsDocument';
 import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
+import {CmakeDebugger} from './cmakeDebugger';
 import {VcpkgDebugger} from './vcpkgDebugger';
 
 let logMgr : VcpkgLogMgr;
@@ -13,6 +14,7 @@ let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
 let vcpkgDebugger : VcpkgDebugger;
 let disposables: vscode.Disposable[];
+let cmakeDbg: CmakeDebugger;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -23,6 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 	verMgr = new VersionManager();
 	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr);
 	vcpkgDebugger = new VcpkgDebugger(logMgr);
+	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -74,12 +77,51 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
-			vcpkgDebugger.updateConfigurations();   
+			configMgr.getCurrentTriplet().then(triplet => {
+				if (vcpkgDebugger.setDefaultTriplet(triplet))
+				{
+					vcpkgDebugger.updateConfigurations();
+					cmakeDbg.updateConfigurations();
+				}
+			});
         }
-    ))
+    ));
+
+	context.subscriptions.push(vscode.debug.onDidStartDebugSession(
+		session => {
+			if (session.name === "Debug portfile(s)") 
+			{
+				logMgr.logInfo("Starting debug portfile.");
+				let root : any;
+				if(vscode.workspace.workspaceFolders !== undefined) 
+				{
+					root = vscode.workspace.workspaceFolders[0].uri.fsPath; 
+				}
+				else
+				{
+					logMgr.logErr("Should not reach here to getVcpkgRealPath.");
+					root = configMgr.getVcpkgRealPath();
+				}
+				configMgr.getCurrentTriplet().then(triplet => {
+					cmakeDbg.startDebugging(root, triplet);
+				});
+			}
+		}
+	));
+
+	context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(
+		session => {
+			if (session.name === "Debug portfile(s)") 
+			{
+				logMgr.logInfo("Stop debug.");
+				cmakeDbg.stopWaitingDebug();
+			}
+		}
+	));
 	
 	configMgr.logInfo('All the event are registered.');
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
+
