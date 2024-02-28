@@ -99,6 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				else
 				{
+					logMgr.logErr("Should not reach here to getVcpkgRealPath.");
 					root = configMgr.getVcpkgRealPath();
 				}
 				configMgr.getCurrentTriplet().then(triplet => {
