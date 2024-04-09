@@ -5,12 +5,14 @@ import { workspace } from "vscode";
 import * as proc from 'child_process';
 import { VersionManager } from './versionManager';
 import { VcpkgLogMgr } from './log';
+import {VcpkgDebugger} from './vcpkgDebugger';
 
 export class ConfigurationManager implements vscode.Disposable
 {
     //private _context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
     private _logMgr : VcpkgLogMgr;
+    private _vcpkgDebugger: VcpkgDebugger;
     private _versionMgr : VersionManager;
 
     private _enableVcpkgConfig = 'general.enable';
@@ -46,10 +48,11 @@ export class ConfigurationManager implements vscode.Disposable
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
 
-    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager, logMgr : VcpkgLogMgr) {
+    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager, logMgr : VcpkgLogMgr, vcpkgDebugger: VcpkgDebugger) {
         // this._context = context;
         this._logMgr = logMgr;
         this._versionMgr = verMgr;
+        this._vcpkgDebugger = vcpkgDebugger;
 
         let vcpkgPath= this.getVcpkgPathFromConfig();
         if (vcpkgPath !== undefined)
@@ -866,9 +869,17 @@ export class ConfigurationManager implements vscode.Disposable
         let result = await vscode.window.showQuickPick(triplets, {canPickMany: false, placeHolder: "Choose a triplet"});
         if (result !== undefined)
         {
-            this.updateVcpkgSetting(this._targetTripletConfig, result.label);
+            if (result.label === "") 
+            {
+                vscode.window.showErrorMessage('Target triplet should not be empty string.');
+            }
+            await this.updateVcpkgSetting(this._targetTripletConfig, result.label);
             this.logInfo('update target triplet to: ' + result.label);
             vscode.window.showInformationMessage('Update target triplet to: ' + result.label);
+
+            // Update debugger configuration
+            this._vcpkgDebugger.setDefaultTriplet(result.label);
+			this._vcpkgDebugger.updateConfigurations();
         }
     }
 

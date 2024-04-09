@@ -106,8 +106,8 @@ export class VcpkgDebugger {
             exeSuffix = ".exe";
         }
     
-        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --triplet " + this._defaultTriplet + " --recurse; & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install \\\"" + modifiedPorts
-                + "\\\" --triplet " + this._defaultTriplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
+        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --triplet " + this._defaultTriplet + " --recurse; & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts
+                + " --triplet " + this._defaultTriplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
     }
 
     private async cleanConfigurations()
