@@ -23,8 +23,8 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	logMgr = new VcpkgLogMgr();
 	verMgr = new VersionManager();
-	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr);
 	vcpkgDebugger = new VcpkgDebugger(logMgr);
+	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr, vcpkgDebugger);
 	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');

@@ -6,7 +6,7 @@ export class VcpkgDebugger {
     private tasksJsonFileName = "tasks";
     private launchJsonFileName = "launch";
 
-    private _defaultTripket = "";
+    private _defaultTriplet = "";
 
     private _logMgr : VcpkgLogMgr;
 
@@ -87,7 +87,7 @@ export class VcpkgDebugger {
             vscode.window.showErrorMessage("Current default triplet is empty! Please manually set first.");
             return false;
         }
-        this._defaultTripket = triplet;
+        this._defaultTriplet = triplet;
 
         return true;
     }
@@ -106,8 +106,8 @@ export class VcpkgDebugger {
             exeSuffix = ".exe";
         }
     
-        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --recurse; & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts
-                + " --triplet " + this._defaultTripket + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
+        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --triplet " + this._defaultTriplet + " --recurse; & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts
+                + " --triplet " + this._defaultTriplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
     }
 
     private async cleanConfigurations()
