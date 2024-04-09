@@ -14,7 +14,7 @@ Features:
 
 Bug fixes:
 
-Fix some exceptions when setting / getting triplet.
+- Fix some exceptions when setting / getting triplet.
 
 
 ## 2.1.0
