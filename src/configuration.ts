@@ -873,7 +873,7 @@ export class ConfigurationManager implements vscode.Disposable
             {
                 vscode.window.showErrorMessage('Target triplet should not be empty string.');
             }
-            await this.updateVcpkgSetting(this._targetTripletConfig, result.label);
+            this.updateVcpkgSetting(this._targetTripletConfig, result.label);
             this.logInfo('update target triplet to: ' + result.label);
             vscode.window.showInformationMessage('Update target triplet to: ' + result.label);
 
