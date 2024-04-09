@@ -879,7 +879,7 @@ export class ConfigurationManager implements vscode.Disposable
 
             // Update debugger configuration
             this._vcpkgDebugger.setDefaultTriplet(result.label);
-			this._vcpkgDebugger.updateConfigurations();
+            this._vcpkgDebugger.updateConfigurations();
         }
     }
 
