@@ -105,6 +105,7 @@ Features:
 
 ## 1.0.0
 The release version is published now!
+
 Bug fixes:
 
 - change manifest and installDeps to target
