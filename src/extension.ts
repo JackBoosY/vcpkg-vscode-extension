@@ -86,6 +86,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(sideBarProvider.viewType, sideBarProvider));
 
+	function onDidChangeActiveTextEditor(editor: vscode.TextEditor | undefined) {
+		nodeDependenciesProvider.refresh();
+	}
+
+	context.subscriptions.push(
+		vscode.window.onDidChangeActiveTextEditor(onDidChangeActiveTextEditor, null, context.subscriptions)
+	);
+
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
 			configMgr.getCurrentTriplet().then(triplet => {
