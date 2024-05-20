@@ -238,7 +238,34 @@
           }
         ]
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ports-explorer",
+          "title": "Ports Explorer",
+          "icon": "images/vcpkg-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "ports-explorer": [
+        {
+          "id": "vcpkg.sidebarView",
+          "name": "Ports",
+          "type": "webview"
+        },
+        {
+          "id": "nodeDependencies",
+          "name": "Current Dependencies",
+          "contextualTitle": "Current Dependencies"
+        },
+        {
+          "id": "debug-info",
+          "name": "Debugger Info"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

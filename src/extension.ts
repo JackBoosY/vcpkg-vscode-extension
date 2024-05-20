@@ -8,6 +8,7 @@ import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
 import {CmakeDebugger} from './cmakeDebugger';
 import {VcpkgDebugger} from './vcpkgDebugger';
+import {VcpkgSideBarViewProvider, DepNodeProvider} from './sideBar';
 
 let logMgr : VcpkgLogMgr;
 let configMgr : ConfigurationManager;
@@ -20,6 +21,13 @@ let cmakeDbg: CmakeDebugger;
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	disposables = [];
+
+	const rootPath = (vscode.workspace.workspaceFolders && (vscode.workspace.workspaceFolders.length > 0))
+	? vscode.workspace.workspaceFolders[0].uri.fsPath : undefined;
+	const nodeDependenciesProvider = new DepNodeProvider(rootPath);
+	vscode.window.registerTreeDataProvider('nodeDependencies', nodeDependenciesProvider);
+
+	const sideBarProvider = new VcpkgSideBarViewProvider(context.extensionUri, context.extensionPath); 
 	
 	logMgr = new VcpkgLogMgr();
 	verMgr = new VersionManager();
@@ -74,6 +82,9 @@ export function activate(context: vscode.ExtensionContext) {
 		  vscode.commands.executeCommand('workbench.action.openWalkthrough', 'JackBoosY.vcpkg-cmake-tools#start', false);
 		})
 	);
+
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(sideBarProvider.viewType, sideBarProvider));
 
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
