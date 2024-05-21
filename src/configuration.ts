@@ -6,6 +6,7 @@ import * as proc from 'child_process';
 import { VersionManager } from './versionManager';
 import { VcpkgLogMgr } from './log';
 import {VcpkgDebugger} from './vcpkgDebugger';
+import {DepNodeProvider} from './sideBar';
 
 export class ConfigurationManager implements vscode.Disposable
 {
@@ -14,6 +15,7 @@ export class ConfigurationManager implements vscode.Disposable
     private _logMgr : VcpkgLogMgr;
     private _vcpkgDebugger: VcpkgDebugger;
     private _versionMgr : VersionManager;
+    private _nodeProvider: DepNodeProvider;
 
     private _enableVcpkgConfig = 'general.enable';
     private _vcpkgPathConfig = 'general.vcpkgPath';
@@ -48,16 +50,18 @@ export class ConfigurationManager implements vscode.Disposable
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
 
-    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager, logMgr : VcpkgLogMgr, vcpkgDebugger: VcpkgDebugger) {
+    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager, logMgr : VcpkgLogMgr, vcpkgDebugger: VcpkgDebugger, nodeProvider: DepNodeProvider) {
         // this._context = context;
         this._logMgr = logMgr;
         this._versionMgr = verMgr;
         this._vcpkgDebugger = vcpkgDebugger;
+        this._nodeProvider = nodeProvider;
 
         let vcpkgPath= this.getVcpkgPathFromConfig();
         if (vcpkgPath !== undefined)
         {
             this._versionMgr.setVcpkgRoot(vcpkgPath);
+            this._nodeProvider.setVcpkgPath(vcpkgPath);
             this.updateVcpkgSetting(this._vcpkgPathConfig, vcpkgPath, true);
         }
 
@@ -656,6 +660,7 @@ export class ConfigurationManager implements vscode.Disposable
                 return;
             }
             this._versionMgr.setVcpkgRoot(oldPath);
+            this._nodeProvider.setVcpkgPath(oldPath);
 
             this.logInfo('vcpkg already set to ' + oldPath + ' , enabled plugin.');
             // vscode.window.showInformationMessage('vcpkg enabled.');
@@ -672,6 +677,7 @@ export class ConfigurationManager implements vscode.Disposable
                     return;
                 }
                 this._versionMgr.setVcpkgRoot(vcpkgRootEnv);
+                this._nodeProvider.setVcpkgPath(vcpkgRootEnv);
 
 				vscode.window.showInformationMessage('vcpkg enabled.');
 
@@ -725,6 +731,7 @@ export class ConfigurationManager implements vscode.Disposable
                         return;
                     }
                     this._versionMgr.setVcpkgRoot(vcpkgRoot);
+                    this._nodeProvider.setVcpkgPath(vcpkgRoot);
 
 					vscode.window.showInformationMessage('vcpkg enabled.');
 

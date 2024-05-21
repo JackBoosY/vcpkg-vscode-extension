@@ -116,10 +116,17 @@ export class VcpkgSideBarViewProvider implements vscode.WebviewViewProvider
 
 export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
 
+	private _vcpkgPath: string;
 	private _onDidChangeTreeData: vscode.EventEmitter<Dependency | undefined | void> = new vscode.EventEmitter<Dependency | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<Dependency | undefined | void> = this._onDidChangeTreeData.event;
 
 	constructor(private workspaceRoot: string | undefined) {
+		this._vcpkgPath = "";
+	}
+
+	public setVcpkgPath(path: string)
+	{
+		this._vcpkgPath = path;
 	}
 
 	refresh(): void {
@@ -159,18 +166,21 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
 
 			const toDep = (index: any, dependenciesArrary: Array<any>): Dependency => {
 				let currentType = dependenciesArrary[index].constructor;
-				let name, version = "";
+				let name, version;
 				if (currentType === String) {
 					name = dependenciesArrary[index];
+					version = this.getDependencyVersion(name);
 				}
 				else if (currentType === Object) {
 					name = dependenciesArrary[index].name;
+					version = dependenciesArrary[index].version !== undefined ? dependenciesArrary[index].version : this.getDependencyVersion(name);
 				}
-				return new Dependency(name, version, vscode.TreeItemCollapsibleState.None, {
+
+				return new Dependency(name, version, vscode.TreeItemCollapsibleState.None/*, {
 					command: 'extension.openPackageOnNpm',
 					title: '',
 					arguments: [index]
-				});
+				}*/);
 			};
 
 			const deps = packageJson.dependencies
@@ -179,6 +189,19 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
 			return deps;
 		} else {
 			return [];
+		}
+	}
+	
+	private getDependencyVersion(dependency: string)
+	{
+		const latestVersionFile = this._vcpkgPath + "/versions/baseline.json";
+		if (fs.existsSync(latestVersionFile)) {
+			const versionJson = JSON.parse(fs.readFileSync(latestVersionFile, 'utf-8'));
+			return versionJson.default[dependency].baseline + "#" + versionJson.default[dependency]["port-version"];
+		}
+		else
+		{
+			return "undefined";
 		}
 	}
 
@@ -208,8 +231,8 @@ export class Dependency extends vscode.TreeItem {
 	}
 
 	iconPath = {
-		light: path.join(__filename, '..', '..', 'resources', 'light', 'dependency.svg'),
-		dark: path.join(__filename, '..', '..', 'resources', 'dark', 'dependency.svg')
+		light: path.join(__filename, '..', '..', 'media', 'dependency_light.svg'),
+		dark: path.join(__filename, '..', '..', 'media', 'dependency_dark.svg')
 	};
 
 	contextValue = 'dependency';
