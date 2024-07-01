@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs'; 
 import * as path from 'path';
+import { Uri } from "vscode";
 
 export class VcpkgSideBarViewProvider implements vscode.WebviewViewProvider
 {
@@ -176,11 +177,11 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
 					version = dependenciesArrary[index].version !== undefined ? dependenciesArrary[index].version : this.getDependencyVersion(name);
 				}
 
-				return new Dependency(name, version, vscode.TreeItemCollapsibleState.None/*, {
-					command: 'extension.openPackageOnNpm',
+				return new Dependency(name, version, vscode.TreeItemCollapsibleState.None, {
+					command: 'vscode.openFolder',
 					title: '',
-					arguments: [index]
-				}*/);
+					arguments: [Uri.file(this._vcpkgPath + "/ports/" + name + "/vcpkg.json")]
+				});
 			};
 
 			const deps = packageJson.dependencies
