@@ -38,7 +38,13 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
 		}
 		// get vcpkg.json in the current opened file folder
 		let currentActive = vscode.window.activeTextEditor.document.fileName;
-		currentActive = currentActive.slice(0, currentActive.lastIndexOf('/'));
+		if (process.platform === "win32") {
+			currentActive = currentActive.slice(0, currentActive.lastIndexOf('\\'));
+		}
+		else
+		{
+			currentActive = currentActive.slice(0, currentActive.lastIndexOf('/'));
+		}
 		if (fs.existsSync(currentActive + '/vcpkg.json')) {
 			return Promise.resolve(this.getDepsInPackageJson(currentActive + '/vcpkg.json'));
 		}
