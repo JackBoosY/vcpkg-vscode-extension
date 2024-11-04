@@ -7,6 +7,8 @@ export class VcpkgDebugger {
     private launchJsonFileName = "launch";
 
     private _defaultTriplet = "";
+    private _extraOptions = "";
+    private _portFeatures = "";
 
     private _logMgr : VcpkgLogMgr;
 
@@ -64,6 +66,11 @@ export class VcpkgDebugger {
             portNames += ports[index];
             portNames += " ";
         }
+        
+        // delete last empty space
+        if (portNames.charAt(portNames.length - 1) === " ") {
+            portNames = portNames.substring(0, portNames.length - 1);
+        }
 
         return portNames;
     }
@@ -92,6 +99,34 @@ export class VcpkgDebugger {
         return true;
     }
 
+    public getInstallOptions()
+    {
+        return "";
+    }
+
+    public setExtraInstallOptions(options: string)
+    {
+        if (options) {
+            this._extraOptions = options;
+            this.updateConfigurations();
+        }
+    }
+
+    public setPortFeatures(features: string)
+    {
+        if (features) {
+            this._portFeatures = features;
+            this.updateConfigurations();
+        }
+    }
+
+    public isDebugSinglePort()
+    {
+        let modifiedPorts = this.getModifiedPorts();
+
+        return true;
+    }
+
     private generateCommand()
     {
         this._logMgr.logInfo("Genereating commands.");
@@ -105,9 +140,25 @@ export class VcpkgDebugger {
         {
             exeSuffix = ".exe";
         }
+
+        let triplet = "";
+        if (this._defaultTriplet && this._defaultTriplet.length) {
+            triplet = " --triplet " + this._defaultTriplet + " ";
+        }
+
+        let portFeatures = "";
+        if (this._portFeatures && this._portFeatures.length) {
+            portFeatures = "[" + this._portFeatures + "] ";
+        }
+
+        let command = "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + triplet + " --recurse;"
+                + " & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts + portFeatures + " "
+                + this._extraOptions
+                + triplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
     
-        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --triplet " + this._defaultTriplet + " --recurse; & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts
-                + " --triplet " + this._defaultTriplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
+        this._logMgr.logInfo("generateCommand: " + command);
+        
+        return command;
     }
 
     private async cleanConfigurations()

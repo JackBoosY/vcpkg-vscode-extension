@@ -12,6 +12,11 @@ body {
 	padding: 0;
 }
 
+.debug-port-name {
+	list-style: none;
+	padding: 0;
+}
+
 .feature-options {
 	list-style: none;
 	padding: 0;

@@ -4,9 +4,21 @@
 // It cannot access the main VS Code APIs directly.
 (function () {
     const vscode = acquireVsCodeApi();
+    let portName = "";
 
     document.querySelector('.set-debug-options-button').addEventListener('click', () => {
         setDebuggerInfo();
+    });
+    
+    // Handle messages sent from the extension to the webview
+    window.addEventListener('message', event => {
+        const message = event.data; // The json data that the extension sent
+        switch (message.type) {
+            case 'updateDebugPortName':
+                {
+                    updateDebugPortName(message.value);
+                }
+        }
     });
 
     function initInfo() {
@@ -31,6 +43,15 @@
         ftEdit.type = 'text';
         ft_li.appendChild(ftEdit);
         ft?.appendChild(ft_li);
+
+        const port = document.querySelector('.debug-port-name');
+        port.textContent = portName;
+    }
+
+    function updateDebugPortName(name) {
+
+        const port = document.querySelector('.debug-port-name');
+        port.textContent = name;
     }
 
     function setDebuggerInfo() {

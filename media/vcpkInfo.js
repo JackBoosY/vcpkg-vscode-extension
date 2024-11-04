@@ -3,10 +3,12 @@
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
+    // @ts-ignore
     const vscode = acquireVsCodeApi();
 
     let vcpkgPath = "";
 
+    // @ts-ignore
     document.querySelector('.set-vcpkg-path-button').addEventListener('click', () => {
         vscode.postMessage({ type: "chooseVcpkgPath" });
     });
@@ -34,6 +36,7 @@
      */
     function updateVcpkgPath(path) {
         const ul = document.querySelector('.vcpkg-path');
+        // @ts-ignore
         ul.textContent = path;
 
         // Update the saved state
@@ -43,6 +46,7 @@
     function setVcpkgPath(path) {
         if (path === "" || path === null) {
             const ul = document.querySelector('.vcpkg-path');
+            // @ts-ignore
             path = ul.textContent;
         }
         updateVcpkgPath(path);

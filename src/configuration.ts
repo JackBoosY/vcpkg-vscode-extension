@@ -6,7 +6,7 @@ import * as proc from 'child_process';
 import { VersionManager } from './versionManager';
 import { VcpkgLogMgr } from './log';
 import {VcpkgDebugger} from './vcpkgDebugger';
-import {DepNodeProvider} from './sideBar';
+import {DepNodeProvider} from './sidebar/DepNodeProvider';
 
 export class ConfigurationManager implements vscode.Disposable
 {
@@ -641,13 +641,14 @@ export class ConfigurationManager implements vscode.Disposable
     }
 
     public async chooseVcpkgPath() {
+        let path = "";
         let options = {
             canSelectFiles: false,
             canSelectFolders: true,
             canSelectMany: false,
             openLabel: 'Select vcpkg root path'
         };
-        vscode.window.showOpenDialog(options).then(async result => {
+        await vscode.window.showOpenDialog(options).then(async result => {
             if (result === undefined)
             {
                 this.logErr('invalid vcpkg path, plugin will not be enabled.');
@@ -684,15 +685,17 @@ export class ConfigurationManager implements vscode.Disposable
                 this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
 
                 this.logInfo('detect select valid vcpkg path: ' + vcpkgRoot + ' , enabled plugin.');
-                return vcpkgRoot;
+                path = vcpkgRoot;
             }
             else
             {
                 this.logErr('invalid vcpkg path: ' + vcpkgRoot + ' , plugin will not be enabled.');
                 vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
-                return vcpkgRoot;
+                path = vcpkgRoot;
             }
         });
+
+        return Promise.resolve(path);
     }
 
     public async enableVcpkg(forceEnable: Boolean) {
