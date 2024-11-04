@@ -44,9 +44,11 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 				break;
 				case 'chooseVcpkgPath':
 				{
-					this._configMgr.chooseVcpkgPath().then(async result => {
-						webviewView.webview.postMessage({ type: "setVcpkgPath", value: result});
-						this._logMgr.logInfo("VcpkgInfoSideBarViewProvider setVcpkgPath: " + result);
+					this._configMgr.chooseAndUpdateVcpkgPath().then(async result => {
+						if (result.length) {
+							webviewView.webview.postMessage({ type: "setVcpkgPath", value: result});
+							this._logMgr.logInfo("VcpkgInfoSideBarViewProvider setVcpkgPath: " + result);
+						}
 					});
 				}
 				case 'setVcpkgPath':

@@ -1,11 +1,13 @@
-// @ts-nocheck
+//@ts-check
 
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
+    // @ts-ignore
     const vscode = acquireVsCodeApi();
     let portName = "";
 
+    // @ts-ignore
     document.querySelector('.set-debug-options-button').addEventListener('click', () => {
         setDebuggerInfo();
     });
@@ -23,34 +25,38 @@
 
     function initInfo() {
         const dbg = document.querySelector('.debug-options');
+        // @ts-ignore
         dbg.textContent = "";
-        const dbg_li = document.createElement('li');
-        dbg_li.className = 'color-entry';
+        const dbgLi = document.createElement('li');
+        dbgLi.className = 'color-entry';
 
         const dbgEdit = document.createElement('input');
         dbgEdit.className = 'color-input';
         dbgEdit.type = 'text';
-        dbg_li.appendChild(dbgEdit);
-        dbg?.appendChild(dbg_li);
+        dbgLi.appendChild(dbgEdit);
+        dbg?.appendChild(dbgLi);
 
         const ft = document.querySelector('.feature-options');
+        // @ts-ignore
         ft.textContent = "";
-        const ft_li = document.createElement('li');
-        ft_li.className = 'color-entry';
+        const ftLi = document.createElement('li');
+        ftLi.className = 'color-entry';
 
         const ftEdit = document.createElement('input');
         ftEdit.className = 'color-input';
         ftEdit.type = 'text';
-        ft_li.appendChild(ftEdit);
-        ft?.appendChild(ft_li);
+        ftLi.appendChild(ftEdit);
+        ft?.appendChild(ftLi);
 
         const port = document.querySelector('.debug-port-name');
+        // @ts-ignore
         port.textContent = portName;
     }
 
     function updateDebugPortName(name) {
 
         const port = document.querySelector('.debug-port-name');
+        // @ts-ignore
         port.textContent = name;
     }
 
