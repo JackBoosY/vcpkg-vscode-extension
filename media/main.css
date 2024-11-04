@@ -2,7 +2,17 @@ body {
 	background-color: transparent;
 }
 
-.color-list {
+.vcpkg-path {
+	list-style: none;
+	padding: 0;
+}
+
+.debug-options {
+	list-style: none;
+	padding: 0;
+}
+
+.feature-options {
 	list-style: none;
 	padding: 0;
 }
@@ -31,10 +41,4 @@ body {
 	background-color: var(--vscode-input-background);
 	border: none;
 	padding: 0 0.6em;
-}
-
-.add-color-button {
-	display: block;
-	border: none;
-	margin: 0 auto;
 }

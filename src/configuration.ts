@@ -640,7 +640,62 @@ export class ConfigurationManager implements vscode.Disposable
         }
     }
 
-    async enableVcpkg(forceEnable: Boolean) {
+    public async chooseVcpkgPath() {
+        let options = {
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            openLabel: 'Select vcpkg root path'
+        };
+        vscode.window.showOpenDialog(options).then(async result => {
+            if (result === undefined)
+            {
+                this.logErr('invalid vcpkg path, plugin will not be enabled.');
+                vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
+                return;
+            }
+
+            let uri = result[0].path.toString();
+
+            this.logInfo("select: " + uri);
+
+            let vcpkgRoot = '';
+            if (process.platform === "win32")
+            {
+                vcpkgRoot = uri.substring(1, uri.length);
+            }
+            else
+            {
+                vcpkgRoot = uri;
+            }
+
+            if (await this.isVcpkgExistInPath(vcpkgRoot))
+            {
+
+                if (!this.initCMakeSettings(vcpkgRoot))
+                {
+                    return;
+                }
+                this._versionMgr.setVcpkgRoot(vcpkgRoot);
+                this._nodeProvider.setVcpkgPath(vcpkgRoot);
+
+                vscode.window.showInformationMessage('vcpkg enabled.');
+
+                this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
+
+                this.logInfo('detect select valid vcpkg path: ' + vcpkgRoot + ' , enabled plugin.');
+                return vcpkgRoot;
+            }
+            else
+            {
+                this.logErr('invalid vcpkg path: ' + vcpkgRoot + ' , plugin will not be enabled.');
+                vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
+                return vcpkgRoot;
+            }
+        });
+    }
+
+    public async enableVcpkg(forceEnable: Boolean) {
         if (this.isVcpkgEnabled() && !forceEnable)
         {
             this.logInfo('vcpkg is already enabled.');
@@ -695,58 +750,7 @@ export class ConfigurationManager implements vscode.Disposable
 		}
 		else
 		{
-			let options = {
-				canSelectFiles: false,
-				canSelectFolders: true,
-				canSelectMany: false,
-				openLabel: 'Select vcpkg root path'
-			};
-			vscode.window.showOpenDialog(options).then(async result => {
-				if (result === undefined)
-				{
-                    this.logErr('invalid vcpkg path, plugin will not be enabled.');
-					vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
-					return;
-				}
-
-				let uri = result[0].path.toString();
-
-                this.logInfo("select: " + uri);
-
-                let vcpkgRoot = '';
-                if (process.platform === "win32")
-                {
-                    vcpkgRoot = uri.substring(1, uri.length);
-                }
-                else
-                {
-                    vcpkgRoot = uri;
-                }
-
-				if (await this.isVcpkgExistInPath(vcpkgRoot))
-				{
-
-                    if (!this.initCMakeSettings(vcpkgRoot))
-                    {
-                        return;
-                    }
-                    this._versionMgr.setVcpkgRoot(vcpkgRoot);
-                    this._nodeProvider.setVcpkgPath(vcpkgRoot);
-
-					vscode.window.showInformationMessage('vcpkg enabled.');
-
-					this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
-
-                    this.logInfo('detect select valid vcpkg path: ' + vcpkgRoot + ' , enabled plugin.');
-					return;
-				}
-				else
-				{
-                    this.logErr('invalid vcpkg path: ' + vcpkgRoot + ' , plugin will not be enabled.');
-					vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
-					return;
-				}
-			});
+            this.chooseVcpkgPath();
 		}
     }
 

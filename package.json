@@ -251,8 +251,8 @@
     "views": {
       "ports-explorer": [
         {
-          "id": "vcpkg.sidebarView",
-          "name": "Ports",
+          "id": "vcpkg.infoSidebarView",
+          "name": "Vcpkg Info",
           "type": "webview"
         },
         {
@@ -261,8 +261,9 @@
           "contextualTitle": "Current Dependencies"
         },
         {
-          "id": "debug-info",
-          "name": "Debugger Info"
+          "id": "vcpkg.debuggerSidebarView",
+          "name": "Debugger Info",
+          "type": "webview"
         }
       ]
     }

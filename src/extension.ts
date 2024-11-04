@@ -8,7 +8,7 @@ import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
 import {CmakeDebugger} from './cmakeDebugger';
 import {VcpkgDebugger} from './vcpkgDebugger';
-import {VcpkgSideBarViewProvider, DepNodeProvider} from './sideBar';
+import {VcpkgInfoSideBarViewProvider, DepNodeProvider, VcpkgDebuggerSideBarViewProvider} from './sideBar';
 
 let logMgr : VcpkgLogMgr;
 let configMgr : ConfigurationManager;
@@ -26,14 +26,15 @@ export function activate(context: vscode.ExtensionContext) {
 	? vscode.workspace.workspaceFolders[0].uri.fsPath : undefined;
 	const nodeDependenciesProvider = new DepNodeProvider(rootPath);
 	vscode.window.registerTreeDataProvider('nodeDependencies', nodeDependenciesProvider);
-
-	const sideBarProvider = new VcpkgSideBarViewProvider(context.extensionUri, context.extensionPath); 
 	
 	logMgr = new VcpkgLogMgr();
 	verMgr = new VersionManager();
 	vcpkgDebugger = new VcpkgDebugger(logMgr);
 	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr, vcpkgDebugger, nodeDependenciesProvider);
 	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr);
+
+	const infoSideBarProvider = new VcpkgInfoSideBarViewProvider(context.extensionUri, context.extensionPath, configMgr);
+	const debuggerSideBarProvider = new VcpkgDebuggerSideBarViewProvider(context.extensionUri, context.extensionPath);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -84,7 +85,9 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(sideBarProvider.viewType, sideBarProvider));
+		vscode.window.registerWebviewViewProvider(infoSideBarProvider.viewType, infoSideBarProvider));
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(debuggerSideBarProvider.viewType, debuggerSideBarProvider));
 
 	function onDidChangeActiveTextEditor(editor: vscode.TextEditor | undefined) {
 		nodeDependenciesProvider.refresh();
