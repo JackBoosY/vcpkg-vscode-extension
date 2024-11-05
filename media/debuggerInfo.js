@@ -28,10 +28,10 @@
         // @ts-ignore
         dbg.textContent = "";
         const dbgLi = document.createElement('li');
-        dbgLi.className = 'color-entry';
+        dbgLi.className = 'bg-entry';
 
         const dbgEdit = document.createElement('input');
-        dbgEdit.className = 'color-input';
+        dbgEdit.className = 'text-input';
         dbgEdit.type = 'text';
         dbgLi.appendChild(dbgEdit);
         dbg?.appendChild(dbgLi);
@@ -40,10 +40,10 @@
         // @ts-ignore
         ft.textContent = "";
         const ftLi = document.createElement('li');
-        ftLi.className = 'color-entry';
+        ftLi.className = 'bg-entry';
 
         const ftEdit = document.createElement('input');
-        ftEdit.className = 'color-input';
+        ftEdit.className = 'text-input';
         ftEdit.type = 'text';
         ftLi.appendChild(ftEdit);
         ft?.appendChild(ftLi);
