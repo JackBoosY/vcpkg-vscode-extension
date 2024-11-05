@@ -10,13 +10,18 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 	public readonly viewType = 'vcpkg.debuggerSidebarView';
 
 	private _view?: vscode.WebviewView;
+	private _options: string;
+	private _features: string;
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _extensionPath: string,
 		private _debugger: VcpkgDebugger,
 		private _logMgr: VcpkgLogMgr
-	) { }
+	) { 
+		this._options = "";
+		this._features = "";
+	}
 
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
@@ -41,6 +46,8 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 				case 'setDebuggerInfo':
 				{
 					this._logMgr.logInfo("VcpkgDebuggerSideBarViewProvider debugger: " + data.debugger + " features: " + data.features);
+					this._options = data.debugger;
+					this._features = data.features;
 					// make sure the debugged port count is one.
 					if (this._debugger.isDebugSinglePort()) {
 						this._debugger.setExtraInstallOptions(data.debugger);
@@ -48,11 +55,16 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 					}
 				}
 				break;
+				case 'requestOptionsAndFeatures':
+				{
+					webviewView.webview.postMessage({ type: "restoreOptionsAndFeatures", options: this._options, features:this._features });
+				}
+				break;
 			}
 		});
 
 		let portName = this._debugger.getModifiedPorts();
-		webviewView.webview.postMessage({ type: "updateDebugPortName", value: portName});
+		webviewView.webview.postMessage({ type: "updateDebugPortName", name: portName});
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {

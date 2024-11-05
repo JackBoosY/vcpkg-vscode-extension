@@ -18,8 +18,14 @@
         switch (message.type) {
             case 'updateDebugPortName':
                 {
-                    updateDebugPortName(message.value);
+                    updateDebugPortName(message.name);
                 }
+            break;
+            case 'restoreOptionsAndFeatures':
+                {
+                    restoreOptionsAndFeatures(message.options, message.features);
+                }
+            break;
         }
     });
 
@@ -60,16 +66,30 @@
         port.textContent = name;
     }
 
+    function restoreOptionsAndFeatures(options, features) {
+        const db = document.querySelector('.debug-options');
+        const dbg = db?.querySelector('li')?.querySelector('input');
+        // @ts-ignore
+        dbg.value = options;
+        const ft = document.querySelector('.feature-options');
+        const fts = ft?.querySelector('li')?.querySelector('input');
+        // @ts-ignore
+        fts.value = features;
+    }
+
     function setDebuggerInfo() {
         const db = document.querySelector('.debug-options');
         const dbg = db?.querySelector('li')?.querySelector('input')?.value;
         const ft = document.querySelector('.feature-options');
         const fts = ft?.querySelector('li')?.querySelector('input')?.value;
+
         vscode.postMessage({ type: "setDebuggerInfo", debugger : dbg, features: fts });
     }
 
-
+    // init window
     initInfo();
+    // request old data
+    vscode.postMessage({ type: "requestOptionsAndFeatures"});
 }());
 
 
