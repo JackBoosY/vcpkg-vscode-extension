@@ -6,6 +6,11 @@ export class VcpkgDebugger {
     private tasksJsonFileName = "tasks";
     private launchJsonFileName = "launch";
 
+    private editableName = "--editable";
+    private noBinraryCachingName = "--no-binarycaching";
+    private xCmakeDebugName = "--x-cmake-debug";
+    private xCmakeConfigureDebugName = "--x-cmake-configure-debug";
+
     private _defaultTriplet = "";
     private _extraOptions = "";
     private _portFeatures = "";
@@ -16,7 +21,16 @@ export class VcpkgDebugger {
     {
         this._logMgr = logMgr;
 
-        this.updateConfigurations();
+
+        this.getHistoryInstallOptions().then(async result => {
+            // @ts-ignore
+            this._extraOptions = result.options;
+            // @ts-ignore
+            this._portFeatures = result.features;
+
+            this.updateConfigurations();
+        });
+
     }
 
     private getTasksJsonContent()
@@ -99,9 +113,112 @@ export class VcpkgDebugger {
         return true;
     }
 
-    public getInstallOptions()
+    private filterCommand(options: string[])
     {
-        return "";
+        let filited: string[] = [];
+        if (options.length) {
+            // remove "vcpkg", "install", "port name"
+            for (let index = 3; index < options.length; index++) {
+                const element = options[index];
+                if (element === "") {
+                    continue;
+                }
+                else if (element === this.editableName) {
+                    continue;
+                }
+                else if (element === this.noBinraryCachingName) {
+                    continue;
+                }
+                else if (element === this.xCmakeDebugName) {
+                    index++;
+                }
+                else if (element === this.xCmakeConfigureDebugName) {
+                    index++;
+                }
+                else {
+                    filited.push(element);
+                }
+            }
+        }
+
+        return filited;
+    }
+
+    private parseFeature(command: string)
+    {
+        let features : string[] = [];
+        if (command.indexOf("[") !== -1) {
+            let featureStr = command.substring(command.indexOf("[") + 1, command.length);
+            featureStr = featureStr.substring(0, featureStr.indexOf("]"));
+            features = featureStr.split(',');
+        }
+
+        return features;
+    }
+
+    private parseCommand(command: string)
+    {
+        let options: string[] = [];
+        let features: string[] = [];
+
+        let parsed = command.split(" ");
+
+        let isInstall = false;
+        let foundCommand = false;
+        for (let index = 0; index < parsed.length; index++) {
+            const element = parsed[index];
+            if (element === "&") {
+                isInstall = true;
+                continue;
+            }
+
+            if (isInstall) {
+                if (element.indexOf("vcpkg") !== -1) {
+                    foundCommand = true;
+                }
+                if (foundCommand) {
+                    options.push(element);
+                }
+            }
+        }
+
+        // get features first
+        if (options) {
+            features = this.parseFeature(options[2]);
+        }
+
+        // get install options second
+        options = this.filterCommand(options);
+
+        return {"options": options, "features": features};
+    }
+
+    public async getHistoryInstallOptions()
+    {
+        let options = {};
+        let fullContent = this.getTasksJsonContent();
+        let command = "";
+        // fullContent["tasks"][0]["command"]
+        if (JSON.stringify(fullContent) !== "{}")
+        {
+            if (fullContent.has("tasks"))
+            {
+                for (let index = 0; index < fullContent["tasks"].length; index++) 
+                {
+                    if (fullContent["tasks"][index]["command"]) 
+                    {
+                        command = fullContent["tasks"][index]["command"];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (command) {
+            options = this.parseCommand(command);
+        }
+
+        return options;
     }
 
     public setExtraInstallOptions(options: string)

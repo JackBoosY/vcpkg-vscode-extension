@@ -10,8 +10,8 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 	public readonly viewType = 'vcpkg.debuggerSidebarView';
 
 	private _view?: vscode.WebviewView;
-	private _options: string;
-	private _features: string;
+	private _options: string[];
+	private _features: string[];
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -19,8 +19,8 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 		private _debugger: VcpkgDebugger,
 		private _logMgr: VcpkgLogMgr
 	) { 
-		this._options = "";
-		this._features = "";
+		this._options = [];
+		this._features = [];
 	}
 
 	public resolveWebviewView(
@@ -57,7 +57,13 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 				break;
 				case 'requestOptionsAndFeatures':
 				{
-					webviewView.webview.postMessage({ type: "restoreOptionsAndFeatures", options: this._options, features:this._features });
+					this._debugger.getHistoryInstallOptions().then(async result => {
+						// @ts-ignore
+						this._options = result.options;
+						// @ts-ignore
+						this._features = result.features;
+						webviewView.webview.postMessage({ type: "restoreOptionsAndFeatures", options: this._options, features:this._features });
+					});
 				}
 				break;
 			}
