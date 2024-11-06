@@ -35,26 +35,40 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 
 		webviewView.webview.onDidReceiveMessage(data => {
 			switch (data.type) {
-				case 'updateVcpkgPath':
+				case 'queryVcpkgOptions':
 				{
 					const vcpkgPath = this._configMgr.getVcpkgRealPath();
 					webviewView.webview.postMessage({ type: "setVcpkgPath", value: vcpkgPath});
-					this._logMgr.logInfo("VcpkgInfoSideBarViewProvider getVcpkgPath: " + vcpkgPath);
-				}
-				break;
-				case 'chooseVcpkgPath':
-				{
-					this._configMgr.chooseAndUpdateVcpkgPath().then(async result => {
-						if (result.length) {
-							webviewView.webview.postMessage({ type: "setVcpkgPath", value: result});
-							this._logMgr.logInfo("VcpkgInfoSideBarViewProvider setVcpkgPath: " + result);
-						}
+					this._configMgr.getCurrentHostTriplet().then(async result => {
+						const triplets = this._configMgr.getAllSupportedTriplets();
+						webviewView.webview.postMessage({ type: "setHostTriplet", triplets: triplets, value: result});
 					});
-				}
-				case 'setVcpkgPath':
-				{
+					this._configMgr.getCurrentTriplet().then(async result => {
+						const triplets = this._configMgr.getAllSupportedTriplets();
+						webviewView.webview.postMessage({ type: "setCurrentTriplet", triplets: triplets, value: result});
+					});
+					//this._configMgr.getLibType().then(async result => {
+					//	webviewView.webview.postMessage({ type: "setLibraryType", value: result});
+					//});
+					this._configMgr.getManifestMode().then(async result => {
+						webviewView.webview.postMessage({ type: "setManifestMode", value: result});
+					});
+
 				}
 				break;
+				case 'setVcpkgOptions':
+				{
+					this._configMgr.setVcpkgPath(data.vcpkgPath);
+					this._configMgr.setHostTripletByString(data.hostTriplet);
+					this._configMgr.setTargetTripletByString(data.currentTriplet);
+					//this._configMgr.useLibType(data.libType);
+					if (data.manifestMode) {
+						this._configMgr.enableManifest();
+					}
+					else {
+						this._configMgr.disableManifest();
+					}
+				}
 			}
 		});
 	}
@@ -92,10 +106,24 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 				<title>Vcpkg Settings</title>
 			</head>
 			<body>
+				<text>Vcpkg Path</text>
+				<br>
 				<ul class="vcpkg-path">
 				</ul>
+				<text>Current Triplet</text>
+				<br>
+				<ul class="current-triplet">
+				</ul>
+				<text>Host Triplet</text>
+				<br>
+				<ul class="host-triplet">
+				</ul>
+				<text>Manifest Mode</text>
+				<br>
+				<ul class="manifest-mode">
+				</ul>
 
-				<button class="set-vcpkg-path-button">Set Vcpkg Path</button>
+				<button class="set-vcpkg-option-button">Apply</button>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>

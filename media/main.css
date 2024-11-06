@@ -7,6 +7,26 @@ body {
 	padding: 0;
 }
 
+.current-triplet {
+	list-style: none;
+	padding: 0;
+}
+
+.host-triplet {
+	list-style: none;
+	padding: 0;
+}
+
+.library-type {
+	list-style: none;
+	padding: 0;
+}
+
+.manifest-mode {
+	list-style: none;
+	padding: 0;
+}
+
 .debug-options {
 	list-style: none;
 	padding: 0;
