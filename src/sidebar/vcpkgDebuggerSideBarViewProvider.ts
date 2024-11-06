@@ -107,13 +107,17 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 			</head>
 			<body>
 				<text>Debug Options:</text>
+				<br>
 				<text>("--editable" was set by default, seperator is empty space)</text>
 				<ul class="debug-options">
 				</ul>
+				<br>
 				<text>Debug port name:</text>
 				<ul class="debug-port-name">
 				</ul>
+				<br>
 				<text>Features:</text>
+				<br>
 				<text>(seperator is comma)</text>
 				<ul class="feature-options">
 				</ul>
