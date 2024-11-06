@@ -235,7 +235,7 @@ export class VcpkgDebugger {
 
     public setPortFeatures(features: string)
     {
-        if (features) {
+        if (features !== undefined) {
             this._portFeatures = features;
             this.updateConfigurations();
         }
