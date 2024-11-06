@@ -10,6 +10,7 @@ export class VcpkgDebugger {
     private noBinraryCachingName = "--no-binarycaching";
     private xCmakeDebugName = "--x-cmake-debug";
     private xCmakeConfigureDebugName = "--x-cmake-configure-debug";
+    private tripletName = "--triplet";
 
     private _defaultTriplet = "";
     private _extraOptions = "";
@@ -135,6 +136,9 @@ export class VcpkgDebugger {
                 else if (element === this.xCmakeConfigureDebugName) {
                     index++;
                 }
+                else if (element === this.tripletName) {
+                    index++;
+                }
                 else {
                     filited.push(element);
                 }
@@ -223,7 +227,7 @@ export class VcpkgDebugger {
 
     public setExtraInstallOptions(options: string)
     {
-        if (options) {
+        if (options !== undefined) {
             this._extraOptions = options;
             this.updateConfigurations();
         }
