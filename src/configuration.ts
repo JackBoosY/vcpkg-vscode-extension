@@ -895,7 +895,7 @@ export class ConfigurationManager implements vscode.Disposable
         let result = await vscode.window.showQuickPick(triplets, {canPickMany: false, placeHolder: "Choose a triplet"});
         if (result !== undefined)
         {
-            this.updateVcpkgSetting(this._targetTripletConfig, result.label);
+            this.updateVcpkgSetting(this._hostTripletConfig, result.label);
             this.logInfo('update host triplet to: ' + result.label);
             vscode.window.showInformationMessage('Update host triplet to: ' + result.label);
         }
