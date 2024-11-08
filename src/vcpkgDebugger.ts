@@ -6,7 +6,15 @@ export class VcpkgDebugger {
     private tasksJsonFileName = "tasks";
     private launchJsonFileName = "launch";
 
+    private editableName = "--editable";
+    private noBinraryCachingName = "--no-binarycaching";
+    private xCmakeDebugName = "--x-cmake-debug";
+    private xCmakeConfigureDebugName = "--x-cmake-configure-debug";
+    private tripletName = "--triplet";
+
     private _defaultTriplet = "";
+    private _extraOptions = "";
+    private _portFeatures = "";
 
     private _logMgr : VcpkgLogMgr;
 
@@ -14,7 +22,16 @@ export class VcpkgDebugger {
     {
         this._logMgr = logMgr;
 
-        this.updateConfigurations();
+
+        this.getHistoryInstallOptions().then(async result => {
+            // @ts-ignore
+            this._extraOptions = result.options;
+            // @ts-ignore
+            this._portFeatures = result.features;
+
+            this.updateConfigurations();
+        });
+
     }
 
     private getTasksJsonContent()
@@ -64,6 +81,11 @@ export class VcpkgDebugger {
             portNames += ports[index];
             portNames += " ";
         }
+        
+        // delete last empty space
+        if (portNames.charAt(portNames.length - 1) === " ") {
+            portNames = portNames.substring(0, portNames.length - 1);
+        }
 
         return portNames;
     }
@@ -92,6 +114,140 @@ export class VcpkgDebugger {
         return true;
     }
 
+    private filterCommand(options: string[])
+    {
+        let filited: string[] = [];
+        if (options.length) {
+            // remove "vcpkg", "install", "port name"
+            for (let index = 3; index < options.length; index++) {
+                const element = options[index];
+                if (element === "") {
+                    continue;
+                }
+                else if (element === this.editableName) {
+                    continue;
+                }
+                else if (element === this.noBinraryCachingName) {
+                    continue;
+                }
+                else if (element === this.xCmakeDebugName) {
+                    index++;
+                }
+                else if (element === this.xCmakeConfigureDebugName) {
+                    index++;
+                }
+                else if (element === this.tripletName) {
+                    index++;
+                }
+                else {
+                    filited.push(element);
+                }
+            }
+        }
+
+        return filited;
+    }
+
+    private parseFeature(command: string)
+    {
+        let features : string[] = [];
+        if (command.indexOf("[") !== -1) {
+            let featureStr = command.substring(command.indexOf("[") + 1, command.length);
+            featureStr = featureStr.substring(0, featureStr.indexOf("]"));
+            features = featureStr.split(',');
+        }
+
+        return features;
+    }
+
+    private parseCommand(command: string)
+    {
+        let options: string[] = [];
+        let features: string[] = [];
+
+        let parsed = command.split(" ");
+
+        let isInstall = false;
+        let foundCommand = false;
+        for (let index = 0; index < parsed.length; index++) {
+            const element = parsed[index];
+            if (element === "&") {
+                isInstall = true;
+                continue;
+            }
+
+            if (isInstall) {
+                if (element.indexOf("vcpkg") !== -1) {
+                    foundCommand = true;
+                }
+                if (foundCommand) {
+                    options.push(element);
+                }
+            }
+        }
+
+        // get features first
+        if (options) {
+            features = this.parseFeature(options[2]);
+        }
+
+        // get install options second
+        options = this.filterCommand(options);
+
+        return {"options": options, "features": features};
+    }
+
+    public async getHistoryInstallOptions()
+    {
+        let options = {};
+        let fullContent = this.getTasksJsonContent();
+        let command = "";
+        // fullContent["tasks"][0]["command"]
+        if (JSON.stringify(fullContent) !== "{}")
+        {
+            if (fullContent.has("tasks"))
+            {
+                for (let index = 0; index < fullContent["tasks"].length; index++) 
+                {
+                    if (fullContent["tasks"][index]["command"]) 
+                    {
+                        command = fullContent["tasks"][index]["command"];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (command) {
+            options = this.parseCommand(command);
+        }
+
+        return options;
+    }
+
+    public setExtraInstallOptions(options: string)
+    {
+        if (options !== undefined) {
+            this._extraOptions = options;
+            this.updateConfigurations();
+        }
+    }
+
+    public setPortFeatures(features: string)
+    {
+        if (features !== undefined) {
+            this._portFeatures = features;
+            this.updateConfigurations();
+        }
+    }
+
+    public isDebugSinglePort()
+    {
+        let modifiedPorts = this.getModifiedPorts();
+
+        return true;
+    }
+
     private generateCommand()
     {
         this._logMgr.logInfo("Genereating commands.");
@@ -105,9 +261,25 @@ export class VcpkgDebugger {
         {
             exeSuffix = ".exe";
         }
+
+        let triplet = "";
+        if (this._defaultTriplet && this._defaultTriplet.length) {
+            triplet = " --triplet " + this._defaultTriplet + " ";
+        }
+
+        let portFeatures = "";
+        if (this._portFeatures && this._portFeatures.length) {
+            portFeatures = "[" + this._portFeatures + "] ";
+        }
+
+        let command = "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + triplet + " --recurse;"
+                + " & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts + portFeatures + " "
+                + this._extraOptions
+                + triplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
     
-        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --triplet " + this._defaultTriplet + " --recurse; & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts
-                + " --triplet " + this._defaultTriplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
+        this._logMgr.logInfo("generateCommand: " + command);
+        
+        return command;
     }
 
     private async cleanConfigurations()
