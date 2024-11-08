@@ -1,5 +1,10 @@
 # History
 
+## 2.2.2
+Bug fixes:
+
+- Fix set host triplet.
+
 ## 2.2.1
 Bug fixes:
 
