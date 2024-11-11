@@ -90,6 +90,7 @@
     initInfo();
     // request old data
     vscode.postMessage({ type: "requestOptionsAndFeatures"});
+    vscode.postMessage({ type: "portName"});
 }());
 
 

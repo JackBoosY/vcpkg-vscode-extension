@@ -3,9 +3,10 @@
 
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
-import { ConfigurationManager } from './configuration';
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
+import {ConfigurationManager} from './configuration';
 import {SettingsDocument} from './settingsDocument';
-import { VersionManager } from './versionManager';
+import {VersionManager} from './versionManager';
 import {CmakeDebugger} from './cmakeDebugger';
 import {VcpkgDebugger} from './vcpkgDebugger';
 import {VcpkgInfoSideBarViewProvider} from "./sidebar/vcpkgInfoSideBarViewProvider";
@@ -13,6 +14,7 @@ import {VcpkgDebuggerSideBarViewProvider} from './sidebar/vcpkgDebuggerSideBarVi
 import {DepNodeProvider} from './sidebar/DepNodeProvider';
 
 let logMgr : VcpkgLogMgr;
+let vcpkgEventEmitter: VcpkgEventEmitter;
 let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
 let vcpkgDebugger : VcpkgDebugger;
@@ -32,13 +34,14 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.window.registerTreeDataProvider('nodeDependencies', nodeDependenciesProvider);
 	
 	logMgr = new VcpkgLogMgr();
-	verMgr = new VersionManager();
-	vcpkgDebugger = new VcpkgDebugger(logMgr);
-	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr, vcpkgDebugger, nodeDependenciesProvider);
-	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr);
+	vcpkgEventEmitter = new VcpkgEventEmitter(logMgr);
+	verMgr = new VersionManager(vcpkgEventEmitter);
+	vcpkgDebugger = new VcpkgDebugger(logMgr, vcpkgEventEmitter);
+	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr, vcpkgDebugger, nodeDependenciesProvider, vcpkgEventEmitter);
+	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr, vcpkgEventEmitter);
 
-	infoSideBarProvider = new VcpkgInfoSideBarViewProvider(context.extensionUri, context.extensionPath, configMgr, logMgr);
-	debuggerSideBarProvider = new VcpkgDebuggerSideBarViewProvider(context.extensionUri, context.extensionPath, vcpkgDebugger, logMgr);
+	infoSideBarProvider = new VcpkgInfoSideBarViewProvider(context.extensionUri, context.extensionPath, configMgr, logMgr, vcpkgEventEmitter);
+	debuggerSideBarProvider = new VcpkgDebuggerSideBarViewProvider(context.extensionUri, context.extensionPath, vcpkgDebugger, logMgr, vcpkgEventEmitter);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -78,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// manifest completion
 	disposables.push(vscode.languages.registerCompletionItemProvider({ scheme: 'file', language: 'json', pattern: '**/vcpkg.json' }, {
 		provideCompletionItems(document, position, token) {
-			return new SettingsDocument(document, verMgr).provideCompletionItems(position, token);
+			return new SettingsDocument(document, verMgr, vcpkgEventEmitter).provideCompletionItems(position, token);
 		}
 	}, "\""));
 	
@@ -106,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
 			configMgr.getCurrentTriplet().then(triplet => {
 				if (vcpkgDebugger.setDefaultTriplet(triplet))
 				{
-					vcpkgDebugger.updateConfigurations();
+					vcpkgDebugger.onDidChangeBreakpoints();
 					cmakeDbg.updateConfigurations();
 				}
 			});

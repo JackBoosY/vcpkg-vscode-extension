@@ -2,24 +2,34 @@ import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
 import {VcpkgDebugger} from './vcpkgDebugger';
 import { debug } from 'vscode';
-import * as fs from 'fs'; 
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
 
+import * as fs from 'fs'; 
 function sleep(time: number){
     return new Promise((resolve) => setTimeout(resolve, time));
    }
 
 export class CmakeDebugger {
-    private _vcpkgDbg: VcpkgDebugger;
     private _logMgr : VcpkgLogMgr;
+    private _emitter: VcpkgEventEmitter;
+    private _vcpkgDbg: VcpkgDebugger;
     private _waitDebug : boolean;
 
-    constructor(vcpkgDebugger: VcpkgDebugger, logMgr : VcpkgLogMgr)
+    constructor(vcpkgDebugger: VcpkgDebugger, logMgr : VcpkgLogMgr, emitter: VcpkgEventEmitter)
     {
         this._vcpkgDbg = vcpkgDebugger;
         this._logMgr = logMgr;
         this._waitDebug = false;
+        this._emitter = emitter;
+        this.eventCallback = this.eventCallback.bind(this);
+        this._emitter.registerListener("CmakeDebugger", this.eventCallback);
 
         this.updateConfigurations();
+    }
+
+    public eventCallback(request: string, result: any)
+    {
+
     }
 
     private generatePipeline()

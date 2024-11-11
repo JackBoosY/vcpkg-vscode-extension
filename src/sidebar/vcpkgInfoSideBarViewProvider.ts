@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { ConfigurationManager } from '../configuration';
 import {VcpkgLogMgr} from '../log';
+import {VcpkgEventEmitter} from '../vcpkgEventEmitter';
+import {ConfigurationManager} from '../configuration';
 
 export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 {
@@ -12,8 +13,17 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _extensionPath: string,
 		private _configMgr: ConfigurationManager,
-		private _logMgr: VcpkgLogMgr
-	) { }
+		private _logMgr: VcpkgLogMgr,
+		private _emitter: VcpkgEventEmitter
+	) { 
+        this.eventCallback = this.eventCallback.bind(this);
+		this._emitter.registerListener("VcpkgInfoSideBarViewProvider", this.eventCallback);
+	}
+
+	public eventCallback(request: string, result: any)
+	{
+
+	}
 
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,

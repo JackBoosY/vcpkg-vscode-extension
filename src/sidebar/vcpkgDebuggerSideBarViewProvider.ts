@@ -2,8 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs'; 
 import * as path from 'path';
 import { Uri } from "vscode";
-import { VcpkgDebugger } from '../vcpkgDebugger';
 import {VcpkgLogMgr} from '../log';
+import {VcpkgEventEmitter} from '../vcpkgEventEmitter';
+import {VcpkgDebugger} from '../vcpkgDebugger';
 
 export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvider
 {
@@ -17,10 +18,27 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _extensionPath: string,
 		private _debugger: VcpkgDebugger,
-		private _logMgr: VcpkgLogMgr
+		private _logMgr: VcpkgLogMgr,
+		private _emitter: VcpkgEventEmitter
 	) { 
+        this.eventCallback = this.eventCallback.bind(this);
+		this._emitter.registerListener("VcpkgDebuggerSideBarViewProvider", this.eventCallback);
 		this._options = [];
 		this._features = [];
+	}
+
+	public eventCallback(request: string, result: any)
+	{
+		switch (request) {
+			case "getDebugPortName":
+				if (this._view) {
+					this._view.webview.postMessage({ type: "updateDebugPortName", name: result});
+				}
+				break;
+		
+			default:
+				break;
+		}
 	}
 
 	public resolveWebviewView(
@@ -66,11 +84,13 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 					});
 				}
 				break;
+				case 'portName':
+				{
+					this._emitter.fire("VcpkgDebugger", "getDebugPortName", []);
+				}
+				break;
 			}
 		});
-
-		let portName = this._debugger.getModifiedPorts();
-		webviewView.webview.postMessage({ type: "updateDebugPortName", name: portName});
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {

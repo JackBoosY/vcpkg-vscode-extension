@@ -3,8 +3,9 @@ import path = require('path');
 import * as vscode from 'vscode';
 import { workspace } from "vscode";
 import * as proc from 'child_process';
-import { VersionManager } from './versionManager';
 import { VcpkgLogMgr } from './log';
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
+import { VersionManager } from './versionManager';
 import {VcpkgDebugger} from './vcpkgDebugger';
 import {DepNodeProvider} from './sidebar/DepNodeProvider';
 
@@ -13,6 +14,7 @@ export class ConfigurationManager implements vscode.Disposable
     //private _context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
     private _logMgr : VcpkgLogMgr;
+    private _emitter: VcpkgEventEmitter;
     private _vcpkgDebugger: VcpkgDebugger;
     private _versionMgr : VersionManager;
     private _nodeProvider: DepNodeProvider;
@@ -50,9 +52,12 @@ export class ConfigurationManager implements vscode.Disposable
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
 
-    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager, logMgr : VcpkgLogMgr, vcpkgDebugger: VcpkgDebugger, nodeProvider: DepNodeProvider) {
+    constructor(/*context: vscode.ExtensionContext, */verMgr : VersionManager, logMgr : VcpkgLogMgr, vcpkgDebugger: VcpkgDebugger, nodeProvider: DepNodeProvider, emitter: VcpkgEventEmitter) {
         // this._context = context;
         this._logMgr = logMgr;
+        this._emitter = emitter;
+        this.eventCallback = this.eventCallback.bind(this);
+        this._emitter.registerListener("ConfigurationManager", this.eventCallback);
         this._versionMgr = verMgr;
         this._vcpkgDebugger = vcpkgDebugger;
         this._nodeProvider = nodeProvider;
@@ -108,6 +113,11 @@ export class ConfigurationManager implements vscode.Disposable
     public logErr(content: string)
     {
         this._logMgr.logErr("configuration.ts: " + content);
+    }
+
+    public eventCallback(request: string, result: any)
+    {
+
     }
 
     private async runCommand(command: string, param: string, executeRoot: string): Promise<string>

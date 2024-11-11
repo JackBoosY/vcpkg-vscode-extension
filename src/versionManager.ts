@@ -1,9 +1,23 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs'; 
+import * as fs from 'fs';
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
 
 export class VersionManager {
+    private _emitter: VcpkgEventEmitter;
 	private _vcpkgRoot = "";
     private _reportedFailure = false;
+
+    constructor(emitter: VcpkgEventEmitter)
+    {
+        this._emitter = emitter;
+        this.eventCallback = this.eventCallback.bind(this);
+        this._emitter.registerListener("VersionManager", this.eventCallback);
+    }
+
+    public eventCallback(request: string, result: any)
+    {
+
+    }
 
     public setVcpkgRoot(root: string)
     {
