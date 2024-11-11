@@ -32,6 +32,7 @@ export class VcpkgDebugger {
             this._portFeatures = result.features;
 
             this.updateConfigurations();
+            this._emitter.fire("CmakeDebugger", "getDebugPortNameInCMakeDebugger", this.getModifiedPorts());
         });
 
     }
@@ -40,11 +41,48 @@ export class VcpkgDebugger {
     {
         switch (request) {
             case "getDebugPortName":
+            {
                 this._emitter.fire("VcpkgDebuggerSideBarViewProvider", "getDebugPortName", this.getModifiedPorts());
-                break;
-        
+            }
+            break;
+            case "getDebugPortNameInCMakeDebugger":
+            {
+                this._emitter.fire("CmakeDebugger", "getDebugPortNameInCMakeDebugger", this.getModifiedPorts());
+            }
+            break;
+            case "setDefaultTriplet":
+            {
+                this.setDefaultTriplet(result as string);
+                this._emitter.fire("VcpkgInfoSideBarViewProvider", "setDefaultTriplet", result);
+            }
+            break;
+            case "setInstallOptions":
+            {
+                this.setExtraInstallOptions(result);
+            }
+            break;
+            case "setPortFeatures":
+            {
+                this.setPortFeatures(result);
+            }
+            break;
+            case "getInstallOptions":
+            {
+                this.getHistoryInstallOptions().then(async result => {
+                    this._emitter.fire("VcpkgDebuggerSideBarViewProvider", "setInstallOptions", result);
+                });
+            }
+            break;
+            case "onDidChangeBreakpoints":
+            {
+                this.onDidChangeBreakpoints();
+            }
+            break;
             default:
-                break;
+            {
+                this._logMgr.logErr("CmakeDebugger eventCallback: received unrecognized message type: " + request);
+            }
+            break;
         }
     }
 
@@ -55,6 +93,11 @@ export class VcpkgDebugger {
     }
 
     public enabledDebug()
+    {
+        return this.getModifiedPorts() !== "";
+    }
+
+    public isBreakPointsValid()
     {
         return this.getModifiedPorts() !== "";
     }
@@ -390,7 +433,7 @@ export class VcpkgDebugger {
         this._emitter.fire("VcpkgDebuggerSideBarViewProvider", "getDebugPortName", this.getModifiedPorts());
     }
 
-    public async updateConfigurations()
+    private async updateConfigurations()
     {
         this._logMgr.logInfo("Updating debugging configurations.");
         // update tasks json first since we may need to clean all configurations in update launch json

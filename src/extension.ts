@@ -35,13 +35,13 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	logMgr = new VcpkgLogMgr();
 	vcpkgEventEmitter = new VcpkgEventEmitter(logMgr);
-	verMgr = new VersionManager(vcpkgEventEmitter);
+	verMgr = new VersionManager(logMgr, vcpkgEventEmitter);
 	vcpkgDebugger = new VcpkgDebugger(logMgr, vcpkgEventEmitter);
-	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr, vcpkgDebugger, nodeDependenciesProvider, vcpkgEventEmitter);
-	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr, vcpkgEventEmitter);
+	configMgr = new ConfigurationManager(/*context, */logMgr, nodeDependenciesProvider, vcpkgEventEmitter);
+	cmakeDbg = new CmakeDebugger(logMgr, vcpkgEventEmitter);
 
-	infoSideBarProvider = new VcpkgInfoSideBarViewProvider(context.extensionUri, context.extensionPath, configMgr, logMgr, vcpkgEventEmitter);
-	debuggerSideBarProvider = new VcpkgDebuggerSideBarViewProvider(context.extensionUri, context.extensionPath, vcpkgDebugger, logMgr, vcpkgEventEmitter);
+	infoSideBarProvider = new VcpkgInfoSideBarViewProvider(context.extensionUri, context.extensionPath, logMgr, vcpkgEventEmitter);
+	debuggerSideBarProvider = new VcpkgDebuggerSideBarViewProvider(context.extensionUri, context.extensionPath, logMgr, vcpkgEventEmitter);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -110,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
 				if (vcpkgDebugger.setDefaultTriplet(triplet))
 				{
 					vcpkgDebugger.onDidChangeBreakpoints();
-					cmakeDbg.updateConfigurations();
+					cmakeDbg.onDidChangeBreakpoints();
 				}
 			});
         }

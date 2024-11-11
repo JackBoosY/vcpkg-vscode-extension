@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from '../log';
 import {VcpkgEventEmitter} from '../vcpkgEventEmitter';
-import {ConfigurationManager} from '../configuration';
 
 export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 {
@@ -12,7 +11,6 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _extensionPath: string,
-		private _configMgr: ConfigurationManager,
 		private _logMgr: VcpkgLogMgr,
 		private _emitter: VcpkgEventEmitter
 	) { 
@@ -22,7 +20,41 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 
 	public eventCallback(request: string, result: any)
 	{
-
+		switch (request) {
+			case "setVcpkgPath":
+			{
+				if (this._view) {
+					this._view.webview.postMessage({ type: "setVcpkgPath", value: result});
+				}
+			}
+			break;
+			case "setDefaultTriplet":
+			{
+				if (this._view) {
+					this._view.webview.postMessage({ type: "setCurrentTriplet", triplets: result.triplets, value: result.current});
+				}
+			}
+			break;
+            case "setHostTriplet":
+            {
+				if (this._view) {
+					this._view.webview.postMessage({ type: "setHostTriplet", triplets: result.triplets, value: result.current});
+				}
+            }
+            break;
+			case "setManifestMode":
+			{
+				if (this._view) {
+					this._view.webview.postMessage({ type: "setManifestMode", result});
+				}
+			}
+			break;
+			default:
+			{
+				this._logMgr.logErr("CmakeDebugger eventCallback: received unrecognized message type: " + request);
+			}
+			break;
+		}
 	}
 
 	public resolveWebviewView(
@@ -47,37 +79,19 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider
 			switch (data.type) {
 				case 'queryVcpkgOptions':
 				{
-					const vcpkgPath = this._configMgr.getVcpkgRealPath();
-					webviewView.webview.postMessage({ type: "setVcpkgPath", value: vcpkgPath});
-					this._configMgr.getCurrentHostTriplet().then(async result => {
-						const triplets = this._configMgr.getAllSupportedTriplets();
-						webviewView.webview.postMessage({ type: "setHostTriplet", triplets: triplets, value: result});
-					});
-					this._configMgr.getCurrentTriplet().then(async result => {
-						const triplets = this._configMgr.getAllSupportedTriplets();
-						webviewView.webview.postMessage({ type: "setCurrentTriplet", triplets: triplets, value: result});
-					});
-					//this._configMgr.getLibType().then(async result => {
-					//	webviewView.webview.postMessage({ type: "setLibraryType", value: result});
-					//});
-					this._configMgr.getManifestMode().then(async result => {
-						webviewView.webview.postMessage({ type: "setManifestMode", value: result});
-					});
-
+					this._emitter.fire("ConfigurationManager", "getVcpkgPathFromInfoSidebar", null);
+					this._emitter.fire("ConfigurationManager", "getCurrentTripletFromInfoSidebar", null);
+					this._emitter.fire("ConfigurationManager", "getHostTripletFromInfoSidebar", null);
+					this._emitter.fire("ConfigurationManager", "getManifestModeFromInfoSidebar", null);
 				}
 				break;
 				case 'setVcpkgOptions':
 				{
-					this._configMgr.setVcpkgPath(data.vcpkgPath);
-					this._configMgr.setHostTripletByString(data.hostTriplet);
-					this._configMgr.setTargetTripletByString(data.currentTriplet);
-					//this._configMgr.useLibType(data.libType);
-					if (data.manifestMode) {
-						this._configMgr.enableManifest();
-					}
-					else {
-						this._configMgr.disableManifest();
-					}
+					this._emitter.fire("ConfigurationManager", "setVcpkgPath", data.vcpkgPath);
+					this._emitter.fire("ConfigurationManager", "setCurrentTriplet", data.hostTriplet);
+					this._emitter.fire("ConfigurationManager", "setHostTriplet", data.currentTriplet);
+					this._emitter.fire("ConfigurationManager", "setManifestMode", data.manifestMode);
+					// this._emitter.fire("ConfigurationManager", "useLibType", data.manifestMode);
 				}
 			}
 		});

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
-import {VcpkgDebugger} from './vcpkgDebugger';
 import { debug } from 'vscode';
 import {VcpkgEventEmitter} from './vcpkgEventEmitter';
 
@@ -12,14 +11,14 @@ function sleep(time: number){
 export class CmakeDebugger {
     private _logMgr : VcpkgLogMgr;
     private _emitter: VcpkgEventEmitter;
-    private _vcpkgDbg: VcpkgDebugger;
     private _waitDebug : boolean;
+    private _port: string;
 
-    constructor(vcpkgDebugger: VcpkgDebugger, logMgr : VcpkgLogMgr, emitter: VcpkgEventEmitter)
+    constructor(logMgr : VcpkgLogMgr, emitter: VcpkgEventEmitter)
     {
-        this._vcpkgDbg = vcpkgDebugger;
         this._logMgr = logMgr;
         this._waitDebug = false;
+        this._port = "";
         this._emitter = emitter;
         this.eventCallback = this.eventCallback.bind(this);
         this._emitter.registerListener("CmakeDebugger", this.eventCallback);
@@ -29,7 +28,19 @@ export class CmakeDebugger {
 
     public eventCallback(request: string, result: any)
     {
-
+        switch (request) {
+            case "getDebugPortNameInCMakeDebugger":
+            {
+                this._port = result as string;
+            }
+            break;
+        
+            default:
+            {
+                this._logMgr.logErr("CmakeDebugger eventCallback: received unrecognized message type: " + request);
+            }
+            break;
+        }
     }
 
     private generatePipeline()
@@ -182,7 +193,13 @@ export class CmakeDebugger {
         }
     }
 
-    public updateConfigurations()
+    public onDidChangeBreakpoints()
+    {
+        this._emitter.fire("VcpkgDebugger", "getDebugPortNameInCMakeDebugger", null);
+        this.updateConfigurations();
+    }
+
+    private updateConfigurations()
     {
         let breakPoints = debug.breakpoints;
         let validBreakPoint = false;
@@ -232,8 +249,7 @@ export class CmakeDebugger {
             return;
         }
 
-        let portName = this._vcpkgDbg.getModifiedPorts();
-        portName = portName?.replace(" ", "");
+        let portName = this._port;
         let outName = vcpkgRoot + "/buildtrees/" + portName + "/stdout-" + currentTriplet + ".log";
         let content = "";
         let whenConfigure = false;

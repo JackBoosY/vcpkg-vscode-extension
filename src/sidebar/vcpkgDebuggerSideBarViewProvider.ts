@@ -17,7 +17,6 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _extensionPath: string,
-		private _debugger: VcpkgDebugger,
 		private _logMgr: VcpkgLogMgr,
 		private _emitter: VcpkgEventEmitter
 	) { 
@@ -31,13 +30,28 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 	{
 		switch (request) {
 			case "getDebugPortName":
+			{
 				if (this._view) {
-					this._view.webview.postMessage({ type: "updateDebugPortName", name: result});
+					this._view.webview.postMessage({ type: "updateDebugPortName", name: result as string});
 				}
-				break;
-		
+			}
+			break;
+			case "setInstallOptions":
+			{
+				// @ts-ignore
+				this._options = result.options;
+				// @ts-ignore
+				this._features = result.features;
+				if (this._view) {
+					this._view.webview.postMessage({ type: "restoreOptionsAndFeatures", options: this._options, features:this._features });
+				}
+			}
+			break;
 			default:
-				break;
+			{
+				this._logMgr.logErr("CmakeDebugger eventCallback: received unrecognized message type: " + request);
+			}
+			break;
 		}
 	}
 
@@ -67,26 +81,18 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 					this._options = data.debugger;
 					this._features = data.features;
 					// make sure the debugged port count is one.
-					if (this._debugger.isDebugSinglePort()) {
-						this._debugger.setExtraInstallOptions(data.debugger);
-						this._debugger.setPortFeatures(data.features);
-					}
+					this._emitter.fire("VcpkgDebugger", "setInstallOptions", data.debugger);
+					this._emitter.fire("VcpkgDebugger", "setPortFeatures", data.features);
 				}
 				break;
 				case 'requestOptionsAndFeatures':
 				{
-					this._debugger.getHistoryInstallOptions().then(async result => {
-						// @ts-ignore
-						this._options = result.options;
-						// @ts-ignore
-						this._features = result.features;
-						webviewView.webview.postMessage({ type: "restoreOptionsAndFeatures", options: this._options, features:this._features });
-					});
+					this._emitter.fire("VcpkgDebugger", "getInstallOptions", null);
 				}
 				break;
 				case 'portName':
 				{
-					this._emitter.fire("VcpkgDebugger", "getDebugPortName", []);
+					this._emitter.fire("VcpkgDebugger", "getDebugPortName", null);
 				}
 				break;
 			}
