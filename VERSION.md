@@ -1,5 +1,10 @@
 # History
 
+## 2.3.0
+Features:
+
+- Add sidebar.
+
 ## 2.2.2
 Bug fixes:
 
