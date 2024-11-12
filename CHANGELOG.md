@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.3.1
+
+- Fix incorrect type detection.
+
 ## 2.3.0
 
 - Add sidebar.
