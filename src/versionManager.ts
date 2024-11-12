@@ -1,9 +1,37 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs'; 
+import * as fs from 'fs';
+import {VcpkgLogMgr} from './log';
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
 
 export class VersionManager {
+    private _emitter: VcpkgEventEmitter;
 	private _vcpkgRoot = "";
     private _reportedFailure = false;
+    private _logMgr : VcpkgLogMgr;
+
+    constructor(logMgr: VcpkgLogMgr, emitter: VcpkgEventEmitter)
+    {
+        this._logMgr = logMgr;
+        this._emitter = emitter;
+        this.eventCallback = this.eventCallback.bind(this);
+        this._emitter.registerListener("VersionManager", this.eventCallback);
+    }
+
+    public eventCallback(request: string, result: any)
+    {
+        switch (request) {
+            case "setVcpkgRoot":
+            {
+                this.setVcpkgRoot(result as string);
+            }
+            break;
+            default:
+            {
+                this._logMgr.logErr("CmakeDebugger eventCallback: received unrecognized message type: " + request);
+            }
+            break;
+        }
+    }
 
     public setVcpkgRoot(root: string)
     {

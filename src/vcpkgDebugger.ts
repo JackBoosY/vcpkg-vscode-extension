@@ -1,26 +1,105 @@
 import * as vscode from 'vscode';
 import {VcpkgLogMgr} from './log';
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
 import { debug } from 'vscode';
 
 export class VcpkgDebugger {
+    private _logMgr: VcpkgLogMgr;
+    private _emitter: VcpkgEventEmitter;
+
     private tasksJsonFileName = "tasks";
     private launchJsonFileName = "launch";
 
+    private editableName = "--editable";
+    private noBinraryCachingName = "--no-binarycaching";
+    private xCmakeDebugName = "--x-cmake-debug";
+    private xCmakeConfigureDebugName = "--x-cmake-configure-debug";
+    private tripletName = "--triplet";
+
     private _defaultTriplet = "";
+    private _extraOptions: string[] = [];
+    private _portFeatures: string[] = [];
 
-    private _logMgr : VcpkgLogMgr;
-
-    constructor(logMgr: VcpkgLogMgr)
+    constructor(logMgr: VcpkgLogMgr, emitter: VcpkgEventEmitter)
     {
         this._logMgr = logMgr;
+        this._emitter = emitter;
+        this.eventCallback = this.eventCallback.bind(this);
+        this._emitter.registerListener("VcpkgDebugger", this.eventCallback);
 
-        this.updateConfigurations();
+        this.getHistoryInstallOptions().then(async result => {
+            this._extraOptions = result.options;
+            this._portFeatures = result.features;
+
+            this.updateConfigurations();
+            this._emitter.fire("CmakeDebugger", "getDebugPortNameInCMakeDebugger", this.getModifiedPorts());
+        });
+
+    }
+
+    public eventCallback(request: string, result: any)
+    {
+        switch (request) {
+            case "getDebugPortName":
+            {
+                this._emitter.fire("VcpkgDebuggerSideBarViewProvider", "getDebugPortName", this.getModifiedPorts());
+            }
+            break;
+            case "getDebugPortNameInCMakeDebugger":
+            {
+                this._emitter.fire("CmakeDebugger", "getDebugPortNameInCMakeDebugger", this.getModifiedPorts());
+            }
+            break;
+            case "setDefaultTriplet":
+            {
+                this.setDefaultTriplet(result as string);
+                this._emitter.fire("VcpkgInfoSideBarViewProvider", "setDefaultTriplet", result);
+            }
+            break;
+            case "setInstallOptions":
+            {
+                this.setExtraInstallOptions(result);
+            }
+            break;
+            case "setPortFeatures":
+            {
+                this.setPortFeatures(result);
+            }
+            break;
+            case "getInstallOptions":
+            {
+                this.getHistoryInstallOptions().then(async result => {
+                    this._emitter.fire("VcpkgDebuggerSideBarViewProvider", "setInstallOptions", result);
+                });
+            }
+            break;
+            case "onDidChangeBreakpoints":
+            {
+                this.onDidChangeBreakpoints();
+            }
+            break;
+            default:
+            {
+                this._logMgr.logErr("CmakeDebugger eventCallback: received unrecognized message type: " + request);
+            }
+            break;
+        }
     }
 
     private getTasksJsonContent()
     {
         this._logMgr.logInfo("Loading tasks json content.");
         return this.readFromFile(this.tasksJsonFileName);
+    }
+
+    public enabledDebug()
+    {
+        return this.getModifiedPorts() !== "";
+    }
+
+    public isBreakPointsValid()
+    {
+        return this.getModifiedPorts() !== "";
     }
 
     public getModifiedPorts()
@@ -64,6 +143,11 @@ export class VcpkgDebugger {
             portNames += ports[index];
             portNames += " ";
         }
+        
+        // delete last empty space
+        if (portNames.charAt(portNames.length - 1) === " ") {
+            portNames = portNames.substring(0, portNames.length - 1);
+        }
 
         return portNames;
     }
@@ -92,6 +176,144 @@ export class VcpkgDebugger {
         return true;
     }
 
+    private filterCommand(options: string[])
+    {
+        let filited: string[] = [];
+        if (options.length) {
+            // remove "vcpkg", "install", "port name"
+            for (let index = 3; index < options.length; index++) {
+                const element = options[index];
+                if (element === "") {
+                    continue;
+                }
+                else if (element === this.editableName) {
+                    continue;
+                }
+                else if (element === this.noBinraryCachingName) {
+                    continue;
+                }
+                else if (element === this.xCmakeDebugName) {
+                    index++;
+                }
+                else if (element === this.xCmakeConfigureDebugName) {
+                    index++;
+                }
+                else if (element === this.tripletName) {
+                    index++;
+                }
+                else {
+                    filited.push(element);
+                }
+            }
+        }
+
+        return filited;
+    }
+
+    private parseFeature(command: string)
+    {
+        let features : string[] = [];
+        if (command.indexOf("[") !== -1) {
+            let featureStr = command.substring(command.indexOf("[") + 1, command.length);
+            featureStr = featureStr.substring(0, featureStr.indexOf("]"));
+            features = featureStr.split(',');
+        }
+
+        return features;
+    }
+
+    private parseCommand(command: string)
+    {
+        let options: string[] = [];
+        let features: string[] = [];
+
+        let parsed = command.split(" ");
+
+        let isInstall = false;
+        let foundCommand = false;
+        for (let index = 0; index < parsed.length; index++) {
+            const element = parsed[index];
+            if (element === "&") {
+                isInstall = true;
+                continue;
+            }
+
+            if (isInstall) {
+                if (element.indexOf("vcpkg") !== -1) {
+                    foundCommand = true;
+                }
+                if (foundCommand) {
+                    options.push(element);
+                }
+            }
+        }
+
+        // get features first
+        if (options) {
+            features = this.parseFeature(options[2]);
+        }
+
+        // get install options second
+        options = this.filterCommand(options);
+
+        return {"options": options, "features": features};
+    }
+
+    public async getHistoryInstallOptions()
+    {
+        let options: {options: string[], features: string[]} = {
+            options: [],
+            features: []
+        };
+
+        let fullContent = this.getTasksJsonContent();
+        let command = "";
+        // fullContent["tasks"][0]["command"]
+        if (JSON.stringify(fullContent) !== "{}")
+        {
+            if (fullContent.has("tasks"))
+            {
+                for (let index = 0; index < fullContent["tasks"].length; index++) 
+                {
+                    if (fullContent["tasks"][index]["command"]) 
+                    {
+                        command = fullContent["tasks"][index]["command"];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (command) {
+            options = this.parseCommand(command);
+        }
+
+        return options;
+    }
+
+    public setExtraInstallOptions(options: string[])
+    {
+        if (options !== undefined) {
+            this._extraOptions = options;
+            this.updateConfigurations();
+        }
+    }
+
+    public setPortFeatures(features: string[])
+    {
+        if (features !== undefined) {
+            this._portFeatures = features;
+            this.updateConfigurations();
+        }
+    }
+
+    public isDebugSinglePort()
+    {
+        let modifiedPorts = this.getModifiedPorts();
+
+        return true;
+    }
+
     private generateCommand()
     {
         this._logMgr.logInfo("Genereating commands.");
@@ -105,9 +327,25 @@ export class VcpkgDebugger {
         {
             exeSuffix = ".exe";
         }
+
+        let triplet = "";
+        if (this._defaultTriplet && this._defaultTriplet.length) {
+            triplet = " --triplet " + this._defaultTriplet + " ";
+        }
+
+        let portFeatures = "";
+        if (this._portFeatures && this._portFeatures.length) {
+            portFeatures = "[" + this._portFeatures + "] ";
+        }
+
+        let command = "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + triplet + " --recurse;"
+                + " & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts + portFeatures + " "
+                + this._extraOptions
+                + triplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
     
-        return "\"${workspaceFolder}/vcpkg" + exeSuffix + "\" remove " + modifiedPorts + " --triplet " + this._defaultTriplet + " --recurse; & \"${workspaceFolder}/vcpkg"+ exeSuffix + "\" install " + modifiedPorts
-                + " --triplet " + this._defaultTriplet + " --no-binarycaching --x-cmake-debug " + this.getDebuggerPipe();
+        this._logMgr.logInfo("generateCommand: " + command);
+        
+        return command;
     }
 
     private async cleanConfigurations()
@@ -152,7 +390,50 @@ export class VcpkgDebugger {
         }
     }
 
-    public async updateConfigurations()
+    private checkAndRegenerateConfigrations()
+    {
+        if (!this.enabledDebug()) {
+            return;
+        }
+        this.getHistoryInstallOptions().then(async result => {
+            let editable = false;
+            let triplet = false;
+            let cmakeCfgDbg = false;
+            let cmakeDbg = false;
+            let noBinCache = false;
+            // check all the required options
+            for (let index = 0; index < result.options.length; index++) {
+                const element = result.options[index];
+                if (element === this.editableName) {
+                    editable = true;
+                }
+                else if (element === this.tripletName) {
+                    triplet = true;
+                }
+                else if (element === this.xCmakeConfigureDebugName) {
+                    cmakeCfgDbg = true;
+                }
+                else if (element === this.xCmakeDebugName) {
+                    cmakeDbg = true;
+                }
+                else if (element === this.noBinraryCachingName) {
+                    noBinCache = true;
+                }
+            }
+
+            if (!editable || !triplet || !cmakeCfgDbg || !cmakeDbg || !noBinCache) {
+                this.updateConfigurations();
+            }
+        });
+    }
+
+    public onDidChangeBreakpoints()
+    {
+        this.updateConfigurations();
+        this._emitter.fire("VcpkgDebuggerSideBarViewProvider", "getDebugPortName", this.getModifiedPorts());
+    }
+
+    private async updateConfigurations()
     {
         this._logMgr.logInfo("Updating debugging configurations.");
         // update tasks json first since we may need to clean all configurations in update launch json

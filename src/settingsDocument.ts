@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
 import { VersionManager } from './versionManager';
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
 
 export class SettingsDocument {
+	private _emitter: VcpkgEventEmitter;
 
-	constructor(private document: vscode.TextDocument, private verMgr: VersionManager) { }
+	constructor(private document: vscode.TextDocument, private verMgr: VersionManager, emitter: VcpkgEventEmitter) {
+		this._emitter = emitter;
+	 }
 
 	public provideCompletionItems(position: vscode.Position, _token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem[]> {
 		const location = this.document.getText().length +  this.document.offsetAt(position);

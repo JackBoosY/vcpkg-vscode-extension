@@ -1,0 +1,60 @@
+body {
+	background-color: transparent;
+}
+
+.vcpkg-path {
+	list-style: none;
+	padding: 0;
+}
+
+.current-triplet {
+	list-style: none;
+	padding: 0;
+}
+
+.host-triplet {
+	list-style: none;
+	padding: 0;
+}
+
+.library-type {
+	list-style: none;
+	padding: 0;
+}
+
+.manifest-mode {
+	list-style: none;
+	padding: 0;
+}
+
+.debug-options {
+	list-style: none;
+	padding: 0;
+}
+
+.debug-port-name {
+	list-style: none;
+	padding: 0;
+}
+
+.feature-options {
+	list-style: none;
+	padding: 0;
+}
+
+.bg-entry {
+	width: 100%;
+	display: flex;
+	margin-bottom: 0.4em;
+	border: 1px solid var(--vscode-input-border);
+}
+
+.text-input {
+	display: block;
+	flex: 1;
+	width: 100%;
+	color: var(--vscode-input-foreground);
+	background-color: var(--vscode-input-background);
+	border: none;
+	padding: 0 0.6em;
+}

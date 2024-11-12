@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2.3.0
+
+- Add sidebar.
+
+## 2.2.0
+
+- Fix set host triplet.
+
 ## 2.2.1
 
 - Fix target triplet is not added into debugger remove config.

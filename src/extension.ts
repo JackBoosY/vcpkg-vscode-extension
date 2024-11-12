@@ -2,30 +2,46 @@
 // Import the module and reference it with the alias vscode in your code below
 
 import * as vscode from 'vscode';
-import { ConfigurationManager } from './configuration';
-import {SettingsDocument} from './settingsDocument';
-import { VersionManager } from './versionManager';
 import {VcpkgLogMgr} from './log';
+import {VcpkgEventEmitter} from './vcpkgEventEmitter';
+import {ConfigurationManager} from './configuration';
+import {SettingsDocument} from './settingsDocument';
+import {VersionManager} from './versionManager';
 import {CmakeDebugger} from './cmakeDebugger';
 import {VcpkgDebugger} from './vcpkgDebugger';
+import {VcpkgInfoSideBarViewProvider} from "./sidebar/vcpkgInfoSideBarViewProvider";
+import {VcpkgDebuggerSideBarViewProvider} from './sidebar/vcpkgDebuggerSideBarViewProvider';
+import {DepNodeProvider} from './sidebar/DepNodeProvider';
 
 let logMgr : VcpkgLogMgr;
+let vcpkgEventEmitter: VcpkgEventEmitter;
 let configMgr : ConfigurationManager;
 let verMgr : VersionManager;
 let vcpkgDebugger : VcpkgDebugger;
 let disposables: vscode.Disposable[];
 let cmakeDbg: CmakeDebugger;
+let infoSideBarProvider : VcpkgInfoSideBarViewProvider;
+let debuggerSideBarProvider : VcpkgDebuggerSideBarViewProvider;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	disposables = [];
+
+	const rootPath = (vscode.workspace.workspaceFolders && (vscode.workspace.workspaceFolders.length > 0))
+	? vscode.workspace.workspaceFolders[0].uri.fsPath : undefined;
+	const nodeDependenciesProvider = new DepNodeProvider(rootPath);
+	vscode.window.registerTreeDataProvider('nodeDependencies', nodeDependenciesProvider);
 	
 	logMgr = new VcpkgLogMgr();
-	verMgr = new VersionManager();
-	vcpkgDebugger = new VcpkgDebugger(logMgr);
-	configMgr = new ConfigurationManager(/*context, */verMgr, logMgr, vcpkgDebugger);
-	cmakeDbg = new CmakeDebugger(vcpkgDebugger, logMgr);
+	vcpkgEventEmitter = new VcpkgEventEmitter(logMgr);
+	verMgr = new VersionManager(logMgr, vcpkgEventEmitter);
+	vcpkgDebugger = new VcpkgDebugger(logMgr, vcpkgEventEmitter);
+	configMgr = new ConfigurationManager(/*context, */logMgr, nodeDependenciesProvider, vcpkgEventEmitter);
+	cmakeDbg = new CmakeDebugger(logMgr, vcpkgEventEmitter);
+
+	infoSideBarProvider = new VcpkgInfoSideBarViewProvider(context.extensionUri, context.extensionPath, logMgr, vcpkgEventEmitter);
+	debuggerSideBarProvider = new VcpkgDebuggerSideBarViewProvider(context.extensionUri, context.extensionPath, logMgr, vcpkgEventEmitter);
 	
 	configMgr.logInfo('Trying to active vcpkg plugin...');
 
@@ -65,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// manifest completion
 	disposables.push(vscode.languages.registerCompletionItemProvider({ scheme: 'file', language: 'json', pattern: '**/vcpkg.json' }, {
 		provideCompletionItems(document, position, token) {
-			return new SettingsDocument(document, verMgr).provideCompletionItems(position, token);
+			return new SettingsDocument(document, verMgr, vcpkgEventEmitter).provideCompletionItems(position, token);
 		}
 	}, "\""));
 	
@@ -75,13 +91,26 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(infoSideBarProvider.viewType, infoSideBarProvider));
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(debuggerSideBarProvider.viewType, debuggerSideBarProvider));
+
+	function onDidChangeActiveTextEditor(editor: vscode.TextEditor | undefined) {
+		nodeDependenciesProvider.refresh();
+	}
+
+	context.subscriptions.push(
+		vscode.window.onDidChangeActiveTextEditor(onDidChangeActiveTextEditor, null, context.subscriptions)
+	);
+
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(
         session => {
 			configMgr.getCurrentTriplet().then(triplet => {
 				if (vcpkgDebugger.setDefaultTriplet(triplet))
 				{
-					vcpkgDebugger.updateConfigurations();
-					cmakeDbg.updateConfigurations();
+					vcpkgDebugger.onDidChangeBreakpoints();
+					cmakeDbg.onDidChangeBreakpoints();
 				}
 			});
         }

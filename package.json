@@ -5,7 +5,7 @@
   "icon": "images/vcpkg-logo.png",
   "publisher": "JackBoosY",
   "license": "MIT",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "engines": {
     "vscode": "^1.76.0"
   },
@@ -238,7 +238,35 @@
           }
         ]
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ports-explorer",
+          "title": "Ports Explorer",
+          "icon": "images/vcpkg-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "ports-explorer": [
+        {
+          "id": "vcpkg.infoSidebarView",
+          "name": "Vcpkg Info",
+          "type": "webview"
+        },
+        {
+          "id": "nodeDependencies",
+          "name": "Current Dependencies",
+          "contextualTitle": "Current Dependencies"
+        },
+        {
+          "id": "vcpkg.debuggerSidebarView",
+          "name": "Debugger Info",
+          "type": "webview"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
