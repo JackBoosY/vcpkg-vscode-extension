@@ -1,5 +1,10 @@
 # History
 
+## 2.3.1
+Bug fixes:
+
+- Fix incorrect type detection.
+
 ## 2.3.0
 Features:
 

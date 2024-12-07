@@ -70,10 +70,17 @@ export class ConfigurationManager implements vscode.Disposable
         {
             this.getCurrentTriplet().then((currentTriplet) => {
                 const currentArch = this.getArch();
-                if (currentTriplet !== undefined && this.combineTriplet(currentArch) !== currentTriplet)
+                let newTriplet = this.combineTriplet(currentArch);
+                if (currentTriplet !== undefined && newTriplet !== currentTriplet)
                 {
                     let triplet = this.separateTriplet(currentTriplet);
-                    if (currentArch.os !== triplet.os)
+                    if (triplet.arch === "" || triplet.os === "")
+                    {
+                        this.updateVcpkgSetting(this._targetTripletConfig, newTriplet);
+                        this.logInfo('Detected wrong triplet setting, automatically update target triplet to: ' + newTriplet);
+                        vscode.window.showInformationMessage('Detected wrong triplet setting, automatically update target triplet to: ' + newTriplet);
+                    }
+                    else if (currentArch.os !== triplet.os)
                     {
                         let newTriplet = this.combineTriplet({arch: triplet.arch, os: currentArch.os});
                         this.updateVcpkgSetting(this._targetTripletConfig, newTriplet);
