@@ -44,6 +44,7 @@ export class ConfigurationManager implements vscode.Disposable
     private _vcpkgBinarySourceEnvConfig = 'VCPKG_BINARY_SOURCES';
     private _vcpkgAssertSourceOption = '--x-asset-sources';
     private _vcpkgBinarySourceOption = '--x-binarysource';
+    private _cmakeToolchainFile = 'CMAKE_TOOLCHAIN_FILE';
     private _cmakeOptionPrefix = '-D';
     private _cmakeOptionEanble = '=ON';
     private _cmakeOptionDisable = '=OFF';
@@ -184,7 +185,8 @@ export class ConfigurationManager implements vscode.Disposable
             return await proc.execSync(command + ' ' + param, {cwd: executeRoot, encoding: 'utf-8'});
         }
         catch (error) {
-            return "";
+            this.logErr(`Command failed: ${command} ${param}\n${error}`);
+            throw error;
         }
     }
 
@@ -312,16 +314,10 @@ export class ConfigurationManager implements vscode.Disposable
         return undefined;
     }
 
-    private generateVcpkgFullPath(path: string)
+    private generateVcpkgFullPath(vcpkgPath: string)
     {
-        if (process.platform === "win32")
-        {
-            return path + '/vcpkg.exe';
-        }
-        else
-        {
-            return path + '/vcpkg';
-        }
+        const exe = process.platform === "win32" ? "vcpkg.exe" : "vcpkg";
+        return path.join(vcpkgPath, exe);
     }
 
     private isVcpkgEnabled()
@@ -462,7 +458,7 @@ export class ConfigurationManager implements vscode.Disposable
         for (let curr in currentSettings)
         {
             //this.logInfo("curr:" + curr);
-            let matched = curr.match('CMAKE_TOOLCHAIN_FILE');
+            let matched = curr.match(this._cmakeToolchainFile);
             //this.logInfo("matched:" + matched);
 
             if (matched !== null)
@@ -481,14 +477,14 @@ export class ConfigurationManager implements vscode.Disposable
         for (let curr in currentSettings)
         {
             //this.logInfo("curr:" + curr);
-            let matched = curr.match('CMAKE_TOOLCHAIN_FILE');
+            let matched = curr.match(this._cmakeToolchainFile);
             //this.logInfo("matched:" + matched);
 
             if (matched !== null)
             {
                 continue;
             }
-            matched = curr.match('VCPKG_TARGET_TRIPLET');
+            matched = curr.match(this._vcpkgTargetTripletConfig);
             if (matched !== null)
             {
                 continue;
@@ -575,7 +571,7 @@ export class ConfigurationManager implements vscode.Disposable
         }
 
         let cleanConfig = this.getCleanVcpkgToolchian();
-        (cleanConfig as any)['CMAKE_TOOLCHAIN_FILE'] = vcpkgRoot + '/scripts/buildsystems/vcpkg.cmake';
+        (cleanConfig as any)['CMAKE_TOOLCHAIN_FILE'] = path.join(vcpkgRoot, 'scripts', 'buildsystems', 'vcpkg.cmake');
         
         this.updateCMakeSetting(this._configConfigSettingConfig, cleanConfig);
 
@@ -671,15 +667,11 @@ export class ConfigurationManager implements vscode.Disposable
     }
 
     private async isContainManifestFile() {
-        let projectPath = vscode.workspace.workspaceFolders?.map(folder => folder.uri.path);
+        let projectPath = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath);
 
         if (projectPath !== undefined && projectPath.length)
         {
-            if (process.platform === "win32" && projectPath[0].startsWith('/'))
-            {
-                projectPath[0] = projectPath[0].substring(1, projectPath[0].length);
-            }
-            return fs.existsSync(projectPath[0] + '/vcpkg.json');
+            return fs.existsSync(path.join(projectPath[0], 'vcpkg.json'));
         }
         else
         {
@@ -708,58 +700,44 @@ export class ConfigurationManager implements vscode.Disposable
         }
     }
 
-    public async chooseAndUpdateVcpkgPath() {
-        let path = "";
-        await this.chooseVcpkgPath().then(async result => {
-            if (await this.isVcpkgExistInPath(result))
-            {
-                this.updateVcpkgSetting(this._vcpkgPathConfig, result, true);
-                this._emitter.fire("VersionManager", "setVcpkgRoot", result);
-                this._nodeProvider.setVcpkgPath(result);
-
-                path = result;
-            }
-            else
-            {
-                this.logErr('invalid vcpkg path: ' + result + ' , plugin will not be enabled.');
-                vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
-            }
-        });
-
-        return Promise.resolve(path);
+    public async chooseAndUpdateVcpkgPath(): Promise<string> {
+        const path = await this.chooseVcpkgPath();
+        if (path && await this.isVcpkgExistInPath(path)) {
+            this.updateVcpkgSetting(this._vcpkgPathConfig, path, true);
+            this._emitter.fire("VersionManager", "setVcpkgRoot", path);
+            this._nodeProvider.setVcpkgPath(path);
+            return path;
+        } else if (path) {
+            this.logErr('invalid vcpkg path: ' + path + ' , plugin will not be enabled.');
+            vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
+        }
+        return "";
     }
 
-    public async chooseVcpkgPath() {
-        let path = "";
-        let options = {
+    public async chooseVcpkgPath(): Promise<string> {
+        const options: vscode.OpenDialogOptions = {
             canSelectFiles: false,
             canSelectFolders: true,
             canSelectMany: false,
             openLabel: 'Select vcpkg root path'
         };
-        await vscode.window.showOpenDialog(options).then(async result => {
-            if (result === undefined)
-            {
-                this.logErr('invalid vcpkg path, plugin will not be enabled.');
-                vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
-                return;
-            }
 
-            let uri = result[0].path.toString();
+        const result = await vscode.window.showOpenDialog(options);
 
-            this.logInfo("select: " + uri);
+        if (!result || result.length === 0) {
+            this.logErr('No vcpkg path selected, plugin will not be enabled.');
+            vscode.window.showErrorMessage('No vcpkg path selected, vcpkg will not be enabled.');
+            return "";
+        }
 
-            if (process.platform === "win32")
-            {
-                path = uri.substring(1, uri.length);
-            }
-            else
-            {
-                path = uri;
-            }
-        });
+        const uri = result[0].path.toString();
+        this.logInfo("select: " + uri);
 
-        return Promise.resolve(path);
+        if (process.platform === "win32" && uri.startsWith('/')) {
+            return uri.substring(1);
+        } else {
+            return uri;
+        }
     }
 
     public async setVcpkgPath(path: string) {
@@ -832,11 +810,11 @@ export class ConfigurationManager implements vscode.Disposable
             return;
         }
 
-		let vcpkgRootEnv = await this.getVcpkgPathFromEnv();
-		if (vcpkgRootEnv !== undefined)
-		{
-			if (await this.isVcpkgExistInPath(vcpkgRootEnv))
-			{
+        let vcpkgRootEnv = await this.getVcpkgPathFromEnv();
+        if (vcpkgRootEnv !== undefined)
+        {
+            if (await this.isVcpkgExistInPath(vcpkgRootEnv))
+            {
                 if (!this.initCMakeSettings(vcpkgRootEnv))
                 {
                     return;
@@ -844,45 +822,36 @@ export class ConfigurationManager implements vscode.Disposable
                 this._emitter.fire("VersionManager", "setVcpkgRoot", vcpkgRootEnv);
                 this._nodeProvider.setVcpkgPath(vcpkgRootEnv);
 
-				vscode.window.showInformationMessage('vcpkg enabled.');
+                vscode.window.showInformationMessage('vcpkg enabled.');
 
-				this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get(this._hostTripletConfig));
+                this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get(this._hostTripletConfig));
 
                 this.logInfo('detect env VCPKG_ROOT: ' + vcpkgRootEnv + ' , enabled plugin.');
-				return;
-			}
-			else
-			{
+                return;
+            }
+            else
+            {
                 this.logErr('invalid env VCPKG_ROOT, plugin will not be enabled.');
-				vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled, pleaes check envornment variable VCPKG_ROOT.');
-				return;
-			}
-		}
-		else
-		{
-            this.chooseVcpkgPath().then(async result => {
-                if (await this.isVcpkgExistInPath(result))
-                    {
-                        if (!this.initCMakeSettings(result))
-                        {
-                            return;
-                        }
-                        this._emitter.fire("VersionManager", "setVcpkgRoot", result);
-                        this._nodeProvider.setVcpkgPath(result);
-        
-                        vscode.window.showInformationMessage('vcpkg enabled.');
-        
-                        this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
-        
-                        this.logInfo('detect select valid vcpkg path: ' + result + ' , enabled plugin.');
-                    }
-                    else
-                    {
-                        this.logErr('invalid vcpkg path: ' + result + ' , plugin will not be enabled.');
-                        vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled.');
-                    }
-            });
-		}
+                vscode.window.showErrorMessage('Invalid vcpkg path, vcpkg will not be enabled, pleaes check envornment variable VCPKG_ROOT.');
+                return;
+            }
+        }
+        else
+        {
+            const result = await this.chooseAndUpdateVcpkgPath();
+            if (result) {
+                if (!this.initCMakeSettings(result))
+                {
+                    return;
+                }
+
+                vscode.window.showInformationMessage('vcpkg enabled.');
+
+                this.logInfo('update target/host triplet to ' + workspace.getConfiguration('vcpkg').get<string>(this._hostTripletConfig));
+
+                this.logInfo('detect select valid vcpkg path: ' + result + ' , enabled plugin.');
+            }
+        }
     }
 
     public async disableVcpkg(cleanToolChain: boolean)
@@ -1006,31 +975,41 @@ export class ConfigurationManager implements vscode.Disposable
         vscode.window.showInformationMessage('Update target triplet to: ' + triplet);
     }
 
-    public async setTargetTriplet()
-    {
-        let triplets = this.getAllSupportedTriplets();
+    private async setTriplet(isHost: boolean) {
+        const triplets = this.getAllSupportedTriplets();
         if (triplets === undefined || triplets.length === 0)
         {
             vscode.window.showErrorMessage('Please check your vcpkg path first.');
             return;
         }
 
-        let result = await vscode.window.showQuickPick(triplets, {canPickMany: false, placeHolder: "Choose a triplet"});
+        const tripletType = isHost ? 'host' : 'target';
+        const result = await vscode.window.showQuickPick(triplets, {canPickMany: false, placeHolder: `Choose a ${tripletType} triplet`});
         if (result !== undefined)
         {
             if (result.label === "") 
             {
-                vscode.window.showErrorMessage('Target triplet should not be empty string.');
+                vscode.window.showErrorMessage(`${tripletType} triplet should not be empty string.`);
+                return;
             }
-            this.updateVcpkgSetting(this._targetTripletConfig, result.label);
-            this.logInfo('update target triplet to: ' + result.label);
-            vscode.window.showInformationMessage('Update target triplet to: ' + result.label);
 
-            // Update debugger configuration
-            this._emitter.fire("VcpkgInfoSideBarViewProvider", "setDefaultTriplet", {triplets: this.getAllSupportedTriplets(), current: result.label});
-            this._emitter.fire("VcpkgDebugger", "setDefaultTriplet", result.label);
-            // this._emitter.fire("VcpkgDebugger", "onDidChangeBreakpoints", null); // why I need this?
+            const configToUpdate = isHost ? this._hostTripletConfig : this._targetTripletConfig;
+            this.updateVcpkgSetting(configToUpdate, result.label);
+            this.logInfo(`update ${tripletType} triplet to: ' + result.label`);
+            vscode.window.showInformationMessage(`Update ${tripletType} triplet to: ' + result.label`);
+
+            if (isHost) {
+                this._emitter.fire("VcpkgInfoSideBarViewProvider", "setHostTriplet", {triplets: this.getAllSupportedTriplets(), current: result.label});
+            } else {
+                this._emitter.fire("VcpkgInfoSideBarViewProvider", "setDefaultTriplet", {triplets: this.getAllSupportedTriplets(), current: result.label});
+                this._emitter.fire("VcpkgDebugger", "setDefaultTriplet", result.label);
+            }
         }
+    }
+
+    public async setTargetTriplet()
+    {
+        await this.setTriplet(false);
     }
 
     public setHostTripletByString(triplet: string)
@@ -1042,21 +1021,7 @@ export class ConfigurationManager implements vscode.Disposable
 
     public async setHostTriplet()
     {
-        let triplets = this.getAllSupportedTriplets();
-        if (triplets === undefined || triplets.length === 0)
-        {
-            vscode.window.showErrorMessage('Please check your vcpkg path first.');
-            return;
-        }
-
-        let result = await vscode.window.showQuickPick(triplets, {canPickMany: false, placeHolder: "Choose a triplet"});
-        if (result !== undefined)
-        {
-            this.updateVcpkgSetting(this._hostTripletConfig, result.label);
-            this.logInfo('update host triplet to: ' + result.label);
-            vscode.window.showInformationMessage('Update host triplet to: ' + result.label);
-            this._emitter.fire("VcpkgInfoSideBarViewProvider", "setHostTriplet", {triplets: this.getAllSupportedTriplets(), current: result.label});
-        }
+        await this.setTriplet(true);
     }
 
     public async getCurrentTriplet()
@@ -1199,128 +1164,163 @@ export class ConfigurationManager implements vscode.Disposable
         await this.updateCMakeConfigureSetting(newConfigs);
     }
 
+    private handleBinaryCachingChange() {
+        this.logInfo('detect binary caching configuration changed.');
+        let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgBinaryCacheConfig);
+        if (currValue !== undefined)
+        {
+            this.binaryCacheWithEnv(currValue);
+        }
+    }
+
+    private handleAssetSourceChange() {
+        this.logInfo('detect asset source configuration changed.');
+        let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgAssetSourceConfig);
+        if (currValue !== undefined)
+        {
+            this.assetSourceWithEnv(currValue);
+        }
+    }
+
+    private handlePreferSystemLibsChange() {
+        this.logInfo('detect use system libs configuration changed.');
+        let currSel = workspace.getConfiguration('vcpkg').get<boolean>(this._preferSystemLibsConfig);
+        this.preferSysLibs(currSel!);
+    }
+
+    private handleDefaultTripletChange() {
+        this.logInfo('detect vcpkg target triplet configuration changed.');
+        let currSel = workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
+        this.useLibType(<any>this.isStaticLib(currSel as string));
+    }
+
+    private handleUseDynamicCRTChange() {
+        if (process.platform === "win32")
+        {
+            let isUseDynamic = workspace.getConfiguration('vcpkg').get<boolean>(this._vcpkgUseDynamicCRTConfig);
+            this.logInfo('detect vcpkg CRT configuration changed to ' + (isUseDynamic ? 'dynamic' : 'static'));
+
+            this.useCRTType(<any>isUseDynamic);
+        }
+    }
+
+    private handleUseStaticLibChange() {
+        let isUseStatic = workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig);
+        this.logInfo('detect vcpkg static lib configuration changed to ' + (isUseStatic ? 'static' : 'dynamic'));
+        this.useLibType(<any>isUseStatic);
+    }
+
+    private handleAdditionalOptionsChange() {
+        this.logInfo('detect vcpkg install option configuration changed.');
+        let extraOptCfgs = workspace.getConfiguration('vcpkg').get<Array<string>>(this._additionalOptionsConfig);
+        if (extraOptCfgs !== undefined && extraOptCfgs.length)
+        {
+            let cmakeConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgInstallOptionsConfig);
+            for (let curr in extraOptCfgs)
+            {
+                cmakeConfigs?.push(extraOptCfgs[curr]);
+
+                this.logInfo('add extra vcpkg instal option: ' + extraOptCfgs[curr]);
+            }
+            
+            this.updateCMakeConfigureSetting(cmakeConfigs);
+        }
+        else
+        {
+            let cmakeConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgInstallOptionsConfig);
+            this.updateCMakeConfigureSetting(cmakeConfigs);
+        }
+    }
+
+    private handleInstallDependenciesChange() {
+        this.logInfo('detect install dependencies configuration changed.');
+        let currSel = workspace.getConfiguration('vcpkg').get<boolean>(this._installDependenciesConfig);
+        this.installDependencies(currSel!);
+    }
+
+    private handleManifestChange() {
+        this.logInfo('detect vcpkg manifest configuration changed.');
+        if (workspace.getConfiguration('vcpkg').get<boolean>(this._useManifestConfig)) {
+            this.enableManifest();
+        } else {
+            this.disableManifest();
+        }
+    }
+
+    private async handleVcpkgPathChange() {
+        this.logInfo('detect vcpkg path configuration changed.');
+        let oldPath = await this.getVcpkgPathFromConfig();
+
+        if (oldPath === undefined)
+        {
+            vscode.window.showErrorMessage('Vcpkg path is incorrect! Disabling vcpkg now.');
+            this.disableVcpkg(true);
+        }
+        else
+        {
+            vscode.window.showInformationMessage('Re-enable vcpkg now.');
+            this.enableVcpkg(true);
+            
+            await this.suggestManifestMode();
+        }
+    }
+
+    private async handleEnableVcpkgChange() {
+        this.logInfo('detect vcpkg enable configuration changed.');
+        if (workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig)) {
+            this.enableVcpkg(true);
+            await this.suggestManifestMode();
+        } else {
+            this.disableVcpkg(true);
+        }
+    }
+
     public async onConfigurationChanged(event : vscode.ConfigurationChangeEvent)
     {
         this.logInfo('detect configuration changed.');
         if (event.affectsConfiguration('vcpkg.' + this._enableVcpkgConfig))
         {
-            this.logInfo('detect vcpkg enable configuration changed.');
-            if (workspace.getConfiguration('vcpkg').get<boolean>(this._enableVcpkgConfig))
-            {
-                this.enableVcpkg(true);
-                
-                await this.suggestManifestMode();
-            }
-            else
-            {
-                this.disableVcpkg(true);
-            }
+            await this.handleEnableVcpkgChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgPathConfig))
         {
-            this.logInfo('detect vcpkg path configuration changed.');
-            let oldPath = await this.getVcpkgPathFromConfig();
-    
-            if (oldPath === undefined)
-            {
-                vscode.window.showErrorMessage('Vcpkg path is incorrect! Disabling vcpkg now.');
-                this.disableVcpkg(true);
-            }
-            else
-            {
-                vscode.window.showInformationMessage('Re-enable vcpkg now.');
-                this.enableVcpkg(true);
-                
-                await this.suggestManifestMode();
-            }
+            await this.handleVcpkgPathChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._useManifestConfig))
         {
-            this.logInfo('detect vcpkg manifest configuration changed.');
-            if (workspace.getConfiguration('vcpkg').get<boolean>(this._useManifestConfig))
-            {
-                this.enableManifest();
-            }
-            else
-            {
-                this.disableManifest();
-            }
+            this.handleManifestChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._installDependenciesConfig))
         {
-            this.logInfo('detect install dependencies configuration changed.');
-            let currSel = workspace.getConfiguration('vcpkg').get<boolean>(this._installDependenciesConfig);
-            this.installDependencies(currSel!);
+            this.handleInstallDependenciesChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._additionalOptionsConfig))
         {
-            this.logInfo('detect vcpkg install option configuration changed.');
-            let extraOptCfgs = workspace.getConfiguration('vcpkg').get<Array<string>>(this._additionalOptionsConfig);
-            if (extraOptCfgs !== undefined && extraOptCfgs.length)
-            {
-                let cmakeConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgInstallOptionsConfig);
-                for (let curr in extraOptCfgs)
-                {
-                    cmakeConfigs?.push(extraOptCfgs[curr]);
-
-                    this.logInfo('add extra vcpkg instal option: ' + extraOptCfgs[curr]);
-                }
-                
-                this.updateCMakeConfigureSetting(cmakeConfigs);
-            }
-            else
-            {
-                let cmakeConfigs = this.getAndCleanCMakeConfigureSetting(this._vcpkgInstallOptionsConfig);
-                this.updateCMakeConfigureSetting(cmakeConfigs);
-            }
+            this.handleAdditionalOptionsChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._useStaticLibConfig))
         {
-            let isUseStatic = workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig);
-            this.logInfo('detect vcpkg static lib configuration changed to ' + (isUseStatic ? 'static' : 'dynamic'));
-
-            this.useLibType(<any>isUseStatic);
+            this.handleUseStaticLibChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgUseDynamicCRTConfig))
         {
-            if (process.platform === "win32")
-            {
-                let isUseDynamic = workspace.getConfiguration('vcpkg').get<boolean>(this._vcpkgUseDynamicCRTConfig);
-                this.logInfo('detect vcpkg CRT configuration changed to ' + (isUseDynamic ? 'dynamic' : 'static'));
-
-                this.useCRTType(<any>isUseDynamic);
-            }
+            this.handleUseDynamicCRTChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._targetTripletConfig))
         {
-            this.logInfo('detect vcpkg target triplet configuration changed.');
-            let currSel = workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
-
-            this.useLibType(<any>this.isStaticLib(currSel as string));
+            this.handleDefaultTripletChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._preferSystemLibsConfig))
         {
-            this.logInfo('detect use system libs configuration changed.');
-            let currSel = workspace.getConfiguration('vcpkg').get<boolean>(this._preferSystemLibsConfig);
-            this.preferSysLibs(currSel!);
+            this.handlePreferSystemLibsChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgAssetSourceConfig))
         {
-            this.logInfo('detect asset source configuration changed.');
-            let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgAssetSourceConfig);
-            if (currValue !== undefined)
-            {
-                this.assetSourceWithEnv(currValue);
-            }
+            this.handleAssetSourceChange();
         }
         else if (event.affectsConfiguration('vcpkg.' + this._vcpkgBinaryCacheConfig))
         {
-            this.logInfo('detect asset source configuration changed.');
-            let currValue = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgBinaryCacheConfig);
-            if (currValue !== undefined)
-            {
-                this.binaryCacheWithEnv(currValue);
-            }
+            this.handleBinaryCachingChange();
         }
     }
 
