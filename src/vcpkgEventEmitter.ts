@@ -18,7 +18,7 @@ export interface VcpkgEventPayloads {
     getHostTripletFromInfoSidebar: null;
     getDebugPortName: string[] | string | null | undefined;
     getDebugPortNameInCMakeDebugger: string[] | string | null | undefined;
-    setInstallOptions: string | { options: string[]; features: string[] };
+    setInstallOptions: string | string[] | { options: string[]; features: string[] };
     setPortFeatures: string[];
     getInstallOptions: null;
     onDidChangeBreakpoints: null;

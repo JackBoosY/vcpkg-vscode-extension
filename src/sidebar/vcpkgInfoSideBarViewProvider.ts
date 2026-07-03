@@ -91,8 +91,8 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider 
                     break;
                 case 'setVcpkgOptions': {
                     this._emitter.fire('ConfigurationManager', 'setVcpkgPath', data.vcpkgPath);
-                    this._emitter.fire('ConfigurationManager', 'setCurrentTriplet', data.hostTriplet);
-                    this._emitter.fire('ConfigurationManager', 'setHostTriplet', data.currentTriplet);
+                    this._emitter.fire('ConfigurationManager', 'setCurrentTriplet', data.currentTriplet);
+                    this._emitter.fire('ConfigurationManager', 'setHostTriplet', data.hostTriplet);
                     this._emitter.fire('ConfigurationManager', 'setManifestMode', data.manifestMode);
                     // this._emitter.fire("ConfigurationManager", "useLibType", data.manifestMode);
                 }

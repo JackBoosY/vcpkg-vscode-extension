@@ -6,7 +6,8 @@ import * as vscode from 'vscode';
 // Mock Log Manager to avoid creating real output channels during tests
 class MockLogMgr extends VcpkgLogMgr {
     constructor() {
-        super();
+        // @ts-ignore
+        super(true); // Signal to skip real initialization
     }
     logInfo(content: string) {}
     logErr(content: string) {}

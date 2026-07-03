@@ -81,7 +81,11 @@ export class ConfigurationManager implements vscode.Disposable {
         });
 
         // Update vcpkg target triplet
-        const automaticUpdateTriplet = workspace.getConfiguration('vcpkg').get<Boolean>(this._autoUpdateTriplet);
+        let automaticUpdateTriplet: boolean = false;
+        const automaticUpdateTripletConfig = workspace.getConfiguration('vcpkg').get<boolean>(this._autoUpdateTriplet);
+        if (automaticUpdateTripletConfig !== undefined) {
+            automaticUpdateTriplet = automaticUpdateTripletConfig;
+        }
         this.isVcpkgEnabled().then((enabled) => {
             this.updateStatusBar(enabled);
             if (automaticUpdateTriplet && enabled) {
@@ -577,7 +581,7 @@ export class ConfigurationManager implements vscode.Disposable {
         }
     }
 
-    public async enableVcpkg(forceEnable: Boolean) {
+    public async enableVcpkg(forceEnable: boolean) {
         if ((await this.isVcpkgEnabled()) && !forceEnable) {
             this.logInfo('vcpkg is already enabled.');
             return;

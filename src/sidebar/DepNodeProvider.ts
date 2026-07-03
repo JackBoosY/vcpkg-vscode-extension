@@ -72,8 +72,9 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
 
             const getDependencyVersion = (dependency: string) => {
                 if (versionJson && versionJson.default && versionJson.default[dependency]) {
+                    const entry = versionJson.default[dependency];
                     return (
-                        versionJson.default[dependency].baseline + '#' + versionJson.default[dependency]['port-version']
+                        entry.baseline + '#' + entry['port-version']
                     );
                 }
                 return 'undefined';

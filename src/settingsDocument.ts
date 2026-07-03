@@ -116,7 +116,7 @@ export class SettingsDocument {
         return configsWithVersion;
     }
 
-    private currentDependencyName(currentLine: string, configText: string, allConfig: Array<Object>) {
+    private currentDependencyName(currentLine: string, configText: string, allConfig: Array<{ name: string; version: string; hash: string }>) {
         if (currentLine.search('"version>="') !== -1 || currentLine.search('"version"') !== -1) {
             let lines = configText.split('\n');
             for (let line in lines) {

@@ -4,7 +4,7 @@ import { VcpkgLogMgr } from '../../log';
 import { VcpkgEventEmitter } from '../../vcpkgEventEmitter';
 
 class MockLogMgr extends VcpkgLogMgr {
-    constructor() { super(); }
+    constructor() { super(true); }
     logInfo(content: string) {}
     logErr(content: string) {}
 }

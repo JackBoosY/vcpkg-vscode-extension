@@ -4,7 +4,7 @@ import { CMakeToolsService } from '../../services/cmakeToolsService';
 import { VcpkgLogMgr } from '../../log';
 
 class MockLogMgr extends VcpkgLogMgr {
-    constructor() { super(); }
+    constructor() { super(true); }
     logInfo(content: string) {}
     logErr(content: string) {}
 }

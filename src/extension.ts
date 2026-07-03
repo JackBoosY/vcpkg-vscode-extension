@@ -5,7 +5,6 @@ import * as vscode from 'vscode';
 import { VcpkgLogMgr } from './log';
 import { VcpkgEventEmitter } from './vcpkgEventEmitter';
 import { ConfigurationManager } from './configuration';
-import { SettingsDocument } from './settingsDocument';
 import { VersionManager } from './versionManager';
 import { CmakeDebugger } from './cmakeDebugger';
 import { VcpkgDebugger } from './vcpkgDebugger';

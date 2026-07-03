@@ -103,7 +103,7 @@ export class VcpkgDebugger {
     }
 
     public getModifiedPorts() {
-        let ports = new Array();
+        let ports: string[] = [];
         let breakPoints = debug.breakpoints;
         for (let index = 0; index < breakPoints.length; index++) {
             const element = breakPoints[index];
@@ -344,7 +344,7 @@ export class VcpkgDebugger {
         let fullContent = this.getLaunchJsonContent();
         if (JSON.stringify(fullContent) !== '{}') {
             if (fullContent.has('configurations')) {
-                let newConfigs = new Array();
+                let newConfigs: any[] = [];
                 for (let index = 0; index < fullContent['configurations'].length; index++) {
                     const element = fullContent['configurations'][index];
                     if (element['name'] !== 'Debug portfile(s)') {
@@ -359,7 +359,7 @@ export class VcpkgDebugger {
         fullContent = this.getTasksJsonContent();
         if (JSON.stringify(fullContent) !== '{}') {
             if (fullContent.has('tasks')) {
-                let newConfigs = new Array();
+                let newConfigs: any[] = [];
                 for (let index = 0; index < fullContent['tasks'].length; index++) {
                     const element = fullContent['tasks'][index];
                     if (element['label'] !== 'Debug vcpkg commands') {
@@ -411,14 +411,14 @@ export class VcpkgDebugger {
     private async updateConfigurations() {
         this._logMgr.logInfo('Updating debugging configurations.');
         // update tasks json first since we may need to clean all configurations in update launch json
-        this.updateTasksJson();
-        this.updateLaunchJson();
+        await this.updateTasksJson();
+        await this.updateLaunchJson();
     }
 
     private async updateTasksJson() {
         this._logMgr.logInfo('Updating tasks.json');
 
-        let modifiedConfig = new Array();
+        let modifiedConfig: any[] = [];
         let staticConfiguration = {
             label: 'Debug vcpkg commands',
             type: 'shell',
@@ -510,7 +510,7 @@ export class VcpkgDebugger {
     private async updateLaunchJson() {
         this._logMgr.logInfo('Updating launch.json');
 
-        let modifiedConfig = new Array();
+        let modifiedConfig: any[] = [];
         let staticConfiguration = {
             type: 'cmake',
             request: 'launch',
@@ -557,7 +557,7 @@ export class VcpkgDebugger {
         return vscode.workspace.getConfiguration(fileName);
     }
 
-    private async writeToFile(fileName: string, scope: string, content: object) {
+    private async writeToFile(fileName: string, scope: string, content: Array<unknown> | Record<string, unknown>) {
         this._logMgr.logInfo('Updating ' + fileName + ' - ' + scope);
         await vscode.workspace.getConfiguration(fileName).update(scope, content, null);
     }

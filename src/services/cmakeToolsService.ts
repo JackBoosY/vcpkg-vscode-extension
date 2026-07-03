@@ -21,7 +21,7 @@ export class CMakeToolsService {
         let actualCondition = condition + '=';
         this._logMgr.logInfo('cmake options: ' + cmakeConfigs?.toString() + ' condition: ' + actualCondition);
 
-        let newConfigs = [];
+        let newConfigs: string[] = [];
         if (cmakeConfigs !== undefined) {
             for (let curr of cmakeConfigs) {
                 let matched = curr.toString().match(actualCondition);
@@ -47,7 +47,7 @@ export class CMakeToolsService {
     public getAndCleanCMakeConfigureSetting(condition: string, vcpkgInstallOptionsConfig: string): Array<string> {
         let options = this.getCMakeConfigureSetting(vcpkgInstallOptionsConfig) as Record<string, string>;
 
-        let newConfigs = [];
+        let newConfigs: string[] = [];
         if (options !== undefined && typeof options === 'object') {
             for (let opt in options) {
                 if (Object.prototype.hasOwnProperty.call(options, opt) && typeof options[opt] === 'string') {

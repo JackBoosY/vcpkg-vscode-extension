@@ -93,14 +93,19 @@
         }
 
         const port = document.querySelector('.debug-port-name');
-        // @ts-ignore
-        port.textContent = portName;
+        if (port) {
+            port.textContent = portName;
+        }
     }
 
+    /**
+     * @param {string} name
+     */
     function updateDebugPortName(name) {
         const port = document.querySelector('.debug-port-name');
-        // @ts-ignore
-        port.textContent = name;
+        if (port) {
+            port.textContent = name;
+        }
     }
 
     /**
@@ -129,10 +134,15 @@
         const db = document.querySelector('.debug-options');
         const ft = document.querySelector('.feature-options');
 
+        /**
+         * @param {Element | null} container
+         */
         const getValues = (container) => {
+            /** @type {string[]} */
             const values = [];
+            if (!container) { return values; }
             const inputs = container.querySelectorAll('input');
-            inputs.forEach(input => {
+            inputs.forEach((/** @type {HTMLInputElement} */ input) => {
                 if (input.value.trim() !== "") {
                     values.push(input.value.trim());
                 }
