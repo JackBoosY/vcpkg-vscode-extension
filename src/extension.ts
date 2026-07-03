@@ -12,6 +12,7 @@ import { VcpkgDebugger } from './vcpkgDebugger';
 import { VcpkgInfoSideBarViewProvider } from './sidebar/vcpkgInfoSideBarViewProvider';
 import { VcpkgDebuggerSideBarViewProvider } from './sidebar/vcpkgDebuggerSideBarViewProvider';
 import { DepNodeProvider } from './sidebar/DepNodeProvider';
+import { CommandHandler } from './commandHandler';
 
 let logMgr: VcpkgLogMgr;
 let vcpkgEventEmitter: VcpkgEventEmitter;
@@ -52,117 +53,14 @@ export function activate(context: vscode.ExtensionContext) {
         vcpkgEventEmitter,
     );
 
+    const commandHandler = new CommandHandler(context, configMgr, verMgr, vcpkgEventEmitter);
+    commandHandler.registerCommands();
+
     configMgr.logInfo('Trying to active vcpkg plugin...');
-
-    // register vcpkg
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.enable_vcpkg',
-            async () => await configMgr.enableVcpkg(false),
-        ),
-    );
-
-    // disable vcpkg
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.disable_vcpkg',
-            async () => await configMgr.disableVcpkg(true),
-        ),
-    );
-
-    // enable manifest
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.enable_manifest',
-            async () => await configMgr.enableManifest(),
-        ),
-    );
-
-    // disable manifest
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.disable_manifest',
-            async () => await configMgr.disableManifest(),
-        ),
-    );
-
-    // get current triplet
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.current_triplet',
-            async () => await configMgr.showCurrentTriplet(),
-        ),
-    );
-
-    // get host triplet
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.current_host_triplet',
-            async () => await configMgr.showCurrentHostTriplet(),
-        ),
-    );
-
-    // set current triplet
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.set_target_triplet',
-            async () => await configMgr.setTargetTriplet(),
-        ),
-    );
-
-    // set host triplet
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.set_host_triplet',
-            async () => await configMgr.setHostTriplet(),
-        ),
-    );
-
-    // use static lib
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.use_static_lib',
-            async () => await configMgr.useLibType(true),
-        ),
-    );
-
-    // use dynamic lib
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            'vcpkg-integration.use_dynamic_lib',
-            async () => await configMgr.useLibType(false),
-        ),
-    );
 
     // config changed event
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(async (event) => await configMgr.onConfigurationChanged(event)),
-    );
-
-    // manifest completion
-    context.subscriptions.push(
-        vscode.languages.registerCompletionItemProvider(
-            { scheme: 'file', language: 'json', pattern: '**/vcpkg.json' },
-            {
-                provideCompletionItems(document, position, token) {
-                    return new SettingsDocument(document, verMgr, vcpkgEventEmitter).provideCompletionItems(
-                        position,
-                        token,
-                    );
-                },
-            },
-            '"',
-        ),
-    );
-
-    context.subscriptions.push(
-        vscode.commands.registerCommand('vcpkg-welcome.getting_start', () => {
-            vscode.commands.executeCommand(
-                'workbench.action.openWalkthrough',
-                'JackBoosY.vcpkg-cmake-tools#start',
-                false,
-            );
-        }),
     );
 
     context.subscriptions.push(
