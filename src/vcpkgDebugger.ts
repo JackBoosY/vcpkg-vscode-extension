@@ -312,7 +312,7 @@ export class VcpkgDebugger {
 
         let portFeatures = '';
         if (this._portFeatures && this._portFeatures.length) {
-            portFeatures = '[' + this._portFeatures + '] ';
+            portFeatures = '[' + this._portFeatures.join(',') + '] ';
         }
 
         let command =
@@ -328,7 +328,7 @@ export class VcpkgDebugger {
             modifiedPorts +
             portFeatures +
             ' ' +
-            this._extraOptions +
+            this._extraOptions.join(' ') +
             triplet +
             ' --no-binarycaching --x-cmake-debug ' +
             this.getDebuggerPipe();

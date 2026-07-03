@@ -36,16 +36,16 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
                 break;
             case 'setInstallOptions':
                 {
-                    // @ts-ignore
-                    this._options = result.options;
-                    // @ts-ignore
-                    this._features = result.features;
-                    if (this._view) {
-                        this._view.webview.postMessage({
-                            type: 'restoreOptionsAndFeatures',
-                            options: this._options,
-                            features: this._features,
-                        });
+                    if (typeof result === 'object' && result !== null && 'options' in result && 'features' in result) {
+                        this._options = result.options as string[];
+                        this._features = result.features as string[];
+                        if (this._view) {
+                            this._view.webview.postMessage({
+                                type: 'restoreOptionsAndFeatures',
+                                options: this._options,
+                                features: this._features,
+                            });
+                        }
                     }
                 }
                 break;
@@ -77,17 +77,19 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
             switch (data.type) {
                 case 'setDebuggerInfo':
                     {
+                        const options = data.debugger as string[];
+                        const features = data.features as string[];
                         this._logMgr.logInfo(
                             'VcpkgDebuggerSideBarViewProvider debugger: ' +
-                                data.debugger +
+                                options.join(' ') +
                                 ' features: ' +
-                                data.features,
+                                features.join(','),
                         );
-                        this._options = data.debugger;
-                        this._features = data.features;
+                        this._options = options;
+                        this._features = features;
                         // make sure the debugged port count is one.
-                        this._emitter.fire('VcpkgDebugger', 'setInstallOptions', data.debugger);
-                        this._emitter.fire('VcpkgDebugger', 'setPortFeatures', data.features);
+                        this._emitter.fire('VcpkgDebugger', 'setInstallOptions', options);
+                        this._emitter.fire('VcpkgDebugger', 'setPortFeatures', features);
                     }
                     break;
                 case 'requestOptionsAndFeatures':
@@ -139,7 +141,7 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 			<body>
 				<text>Debug Options:</text>
 				<br>
-				<text>("--editable" was set by default, seperator is empty space)</text>
+				<text>("--editable" was set by default)</text>
 				<ul class="debug-options">
 				</ul>
 				<br>
@@ -149,7 +151,6 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 				<br>
 				<text>Features:</text>
 				<br>
-				<text>(seperator is comma)</text>
 				<ul class="feature-options">
 				</ul>
 
