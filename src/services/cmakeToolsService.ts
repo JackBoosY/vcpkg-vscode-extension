@@ -12,7 +12,7 @@ export class CMakeToolsService {
         this._logMgr = logMgr;
     }
 
-    public async updateCMakeSetting(subSetting: string, value: any, userScope: boolean = false) {
+    public async updateCMakeSetting(subSetting: string, value: string | boolean | string[] | Record<string, unknown>, userScope: boolean = false) {
         await workspace.getConfiguration('cmake').update(subSetting, value, userScope);
     }
 
@@ -35,23 +35,25 @@ export class CMakeToolsService {
     }
 
     public getCMakeConfigureSetting(setting: string) {
-        let settings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
+        let settings = workspace.getConfiguration('cmake').get<Record<string, unknown>>(this._configConfigSettingConfig);
 
-        if (settings !== undefined && settings.hasOwnProperty(setting)) {
-            return (settings as any)[setting];
+        if (settings !== undefined && Object.prototype.hasOwnProperty.call(settings, setting)) {
+            return settings[setting];
         }
 
         return {};
     }
 
     public getAndCleanCMakeConfigureSetting(condition: string, vcpkgInstallOptionsConfig: string): Array<string> {
-        let options = this.getCMakeConfigureSetting(vcpkgInstallOptionsConfig);
+        let options = this.getCMakeConfigureSetting(vcpkgInstallOptionsConfig) as Record<string, string>;
 
         let newConfigs = [];
-        if (options !== undefined) {
+        if (options !== undefined && typeof options === 'object') {
             for (let opt in options) {
-                if (options[opt].match(condition) === null) {
-                    newConfigs.push((options as any)[opt]);
+                if (Object.prototype.hasOwnProperty.call(options, opt) && typeof options[opt] === 'string') {
+                    if (options[opt].match(condition) === null) {
+                        newConfigs.push(options[opt]);
+                    }
                 }
             }
         }
@@ -60,13 +62,13 @@ export class CMakeToolsService {
     }
 
     public async updateCMakeConfigureSetting(value: Array<string>, vcpkgInstallOptionsConfig: string) {
-        let currentSettings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
+        let currentSettings = workspace.getConfiguration('cmake').get<Record<string, unknown>>(this._configConfigSettingConfig);
         if (currentSettings === undefined) {
             currentSettings = {};
         } else {
-            if (currentSettings.hasOwnProperty(vcpkgInstallOptionsConfig)) {
+            if (Object.prototype.hasOwnProperty.call(currentSettings, vcpkgInstallOptionsConfig)) {
                 const {
-                    [vcpkgInstallOptionsConfig as keyof typeof currentSettings]: _,
+                    [vcpkgInstallOptionsConfig]: _,
                     ...withoutInstallOptions
                 } = currentSettings;
                 currentSettings = withoutInstallOptions;
@@ -79,29 +81,30 @@ export class CMakeToolsService {
     }
 
     public getCMakeVcpkgToolchain(cmakeToolchainFile: string): string | undefined {
-        let currentSettings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
+        let currentSettings = workspace.getConfiguration('cmake').get<Record<string, unknown>>(this._configConfigSettingConfig);
         for (let curr in currentSettings) {
-            let matched = curr.match(cmakeToolchainFile);
-            if (matched !== null) {
-                return currentSettings[curr as keyof typeof currentSettings].toString();
+            if (curr.match(cmakeToolchainFile) !== null) {
+                return currentSettings[curr]?.toString();
             }
         }
         return undefined;
     }
 
     public getCleanVcpkgToolchain(cmakeToolchainFile: string, vcpkgTargetTripletConfig: string) {
-        let currentSettings = workspace.getConfiguration('cmake').get<Object>(this._configConfigSettingConfig);
+        let currentSettings = workspace.getConfiguration('cmake').get<Record<string, unknown>>(this._configConfigSettingConfig);
 
-        let newSettings = {};
-        for (let curr in currentSettings) {
-            if (curr.match(cmakeToolchainFile) !== null) {
-                continue;
-            }
-            if (curr.match(vcpkgTargetTripletConfig) !== null) {
-                continue;
-            }
+        let newSettings: Record<string, unknown> = {};
+        if (currentSettings) {
+            for (let curr in currentSettings) {
+                if (curr.match(cmakeToolchainFile) !== null) {
+                    continue;
+                }
+                if (curr.match(vcpkgTargetTripletConfig) !== null) {
+                    continue;
+                }
 
-            (newSettings as any)[curr] = (currentSettings as any)[curr];
+                newSettings[curr] = currentSettings[curr];
+            }
         }
         return newSettings;
     }

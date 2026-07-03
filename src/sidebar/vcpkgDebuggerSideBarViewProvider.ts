@@ -25,7 +25,7 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
         this._features = [];
     }
 
-    public eventCallback(request: keyof VcpkgEventPayloads, result: any) {
+    public eventCallback<K extends keyof VcpkgEventPayloads>(request: K, result: VcpkgEventPayloads[K]) {
         switch (request) {
             case 'getDebugPortName':
                 {

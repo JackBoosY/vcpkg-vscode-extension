@@ -60,7 +60,7 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
             const buffer = await vscode.workspace.fs.readFile(vscode.Uri.file(packageJsonPath));
             const packageJson = JSON.parse(new TextDecoder('utf-8').decode(buffer));
 
-            let versionJson: any = null;
+            let versionJson: { default?: Record<string, { baseline: string; 'port-version': number }> } | null = null;
             const latestVersionFile = this._vcpkgPath + '/versions/baseline.json';
             try {
                 const verBuffer = await vscode.workspace.fs.readFile(vscode.Uri.file(latestVersionFile));
@@ -79,18 +79,26 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
                 return 'undefined';
             };
 
-            const toDep = (index: any, dependenciesArrary: Array<any>): Dependency => {
-                let currentType = dependenciesArrary[index].constructor;
+            const toDep = (index: string, dependenciesObj: Record<string, string | { name?: string; version?: string }> | string[]): Dependency => {
                 let name, version;
-                if (currentType === String) {
-                    name = dependenciesArrary[index];
+                
+                if (Array.isArray(dependenciesObj)) {
+                    // Array of strings
+                    name = dependenciesObj[Number(index)] as string;
                     version = getDependencyVersion(name);
-                } else if (currentType === Object) {
-                    name = dependenciesArrary[index].name;
-                    version =
-                        dependenciesArrary[index].version !== undefined
-                            ? dependenciesArrary[index].version
-                            : getDependencyVersion(name);
+                } else {
+                    // Object structure
+                    const item = dependenciesObj[index];
+                    if (typeof item === 'string') {
+                        name = item;
+                        version = getDependencyVersion(name);
+                    } else if (typeof item === 'object' && item !== null) {
+                        name = item.name || index; // Fallback to key if name is undefined
+                        version = item.version !== undefined ? item.version : getDependencyVersion(name);
+                    } else {
+                        name = index;
+                        version = 'undefined';
+                    }
                 }
 
                 return new Dependency(name, version, vscode.TreeItemCollapsibleState.None, {

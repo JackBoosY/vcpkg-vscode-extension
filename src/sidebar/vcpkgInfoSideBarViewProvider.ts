@@ -17,7 +17,7 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider 
         this._emitter.registerListener('VcpkgInfoSideBarViewProvider', this.eventCallback);
     }
 
-    public eventCallback(request: keyof VcpkgEventPayloads, result: any) {
+    public eventCallback<K extends keyof VcpkgEventPayloads>(request: K, result: VcpkgEventPayloads[K]) {
         switch (request) {
             case 'setVcpkgPath':
                 {
@@ -28,7 +28,7 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider 
                 break;
             case 'setDefaultTriplet':
                 {
-                    if (this._view) {
+                    if (this._view && typeof result === 'object' && result !== null && 'triplets' in result && 'current' in result) {
                         this._view.webview.postMessage({
                             type: 'setCurrentTriplet',
                             triplets: result.triplets,
@@ -39,7 +39,7 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider 
                 break;
             case 'setHostTriplet':
                 {
-                    if (this._view) {
+                    if (this._view && typeof result === 'object' && result !== null && 'triplets' in result && 'current' in result) {
                         this._view.webview.postMessage({
                             type: 'setHostTriplet',
                             triplets: result.triplets,

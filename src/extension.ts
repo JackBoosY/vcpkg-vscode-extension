@@ -195,18 +195,18 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.debug.onDidStartDebugSession((session) => {
             if (session.name === 'Debug portfile(s)') {
                 logMgr.logInfo('Starting debug portfile.');
-                let root: any;
+                let root: string;
                 if (vscode.workspace.workspaceFolders !== undefined) {
                     root = vscode.workspace.workspaceFolders[0].uri.fsPath;
                     configMgr.getCurrentTriplet().then((triplet) => {
-                        cmakeDbg.startDebugging(root, triplet);
+                        cmakeDbg.startDebugging(root, triplet || '');
                     });
                 } else {
                     logMgr.logErr('Should not reach here to getVcpkgRealPath.');
                     configMgr.getVcpkgRealPath().then(r => {
-                        root = r;
+                        root = r || '';
                         configMgr.getCurrentTriplet().then((triplet) => {
-                            cmakeDbg.startDebugging(root, triplet);
+                            cmakeDbg.startDebugging(root, triplet || '');
                         });
                     });
                 }

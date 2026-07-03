@@ -27,7 +27,7 @@ export class CmakeDebugger {
         this.updateConfigurations();
     }
 
-    public eventCallback(request: keyof VcpkgEventPayloads, result: any) {
+    public eventCallback<K extends keyof VcpkgEventPayloads>(request: K, result: VcpkgEventPayloads[K]) {
         switch (request) {
             case 'getDebugPortNameInCMakeDebugger':
                 {
@@ -106,7 +106,7 @@ export class CmakeDebugger {
         return vscode.workspace.getConfiguration(fileName);
     }
 
-    private async writeToFile(fileName: string, scope: string, content: any) {
+    private async writeToFile(fileName: string, scope: string, content: Array<unknown> | Record<string, unknown>) {
         this._logMgr.logInfo('Updating ' + fileName + ' - ' + scope);
         await vscode.workspace.getConfiguration(fileName).update(scope, content, null);
     }
@@ -189,7 +189,7 @@ export class CmakeDebugger {
         this._waitDebug = false;
     }
 
-    public async startDebugging(vcpkgRoot: any, currentTriplet: any) {
+    public async startDebugging(vcpkgRoot: string, currentTriplet: string) {
         this._logMgr.logInfo('Starting debug cmake.');
         if (vcpkgRoot === undefined || !vcpkgRoot.length) {
             this._logMgr.logErr('vcpkgRoot(' + vcpkgRoot + ') is empty!');

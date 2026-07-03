@@ -22,7 +22,7 @@ export class VersionManager {
         this._emitter.registerListener('VersionManager', this.eventCallback);
     }
 
-    public eventCallback(request: keyof VcpkgEventPayloads, result: any) {
+    public eventCallback<K extends keyof VcpkgEventPayloads>(request: K, result: VcpkgEventPayloads[K]) {
         switch (request) {
             case 'setVcpkgRoot':
                 {

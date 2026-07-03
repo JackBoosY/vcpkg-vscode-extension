@@ -7,6 +7,8 @@ import { VcpkgLogMgr } from './log';
 import { VcpkgEventEmitter, VcpkgEventPayloads } from './vcpkgEventEmitter';
 import { DepNodeProvider } from './sidebar/DepNodeProvider';
 import { CMakeToolsService } from './services/cmakeToolsService';
+import { getArch, combineTriplet, separateTriplet } from './utils/platform';
+import { convertToAbsolutePath, getVcpkgPathFromEnv } from './utils/env';
 
 export class ConfigurationManager implements vscode.Disposable {
     //private _context: vscode.ExtensionContext;
@@ -76,10 +78,10 @@ export class ConfigurationManager implements vscode.Disposable {
         this.isVcpkgEnabled().then((enabled) => {
             if (automaticUpdateTriplet && enabled) {
                 this.getCurrentTriplet().then((currentTriplet) => {
-                    const currentArch = this.getArch();
-                    const newTriplet = this.combineTriplet(currentArch);
+                    const currentArch = getArch();
+                    const newTriplet = combineTriplet(currentArch);
                     if (currentTriplet !== undefined && newTriplet !== currentTriplet) {
-                        const triplet = this.separateTriplet(currentTriplet);
+                        const triplet = separateTriplet(currentTriplet);
                         if (triplet.arch === '' || triplet.os === '') {
                             this.updateVcpkgSetting(this._targetTripletConfig, newTriplet);
                             this.logInfo('Detected wrong triplet setting, automatically update target triplet to: ' + newTriplet);
@@ -87,7 +89,7 @@ export class ConfigurationManager implements vscode.Disposable {
                                 'Detected wrong triplet setting, automatically update target triplet to: ' + newTriplet,
                             );
                         } else if (currentArch.os !== triplet.os) {
-                            const newTriplet = this.combineTriplet({ arch: triplet.arch, os: currentArch.os });
+                            const newTriplet = combineTriplet({ arch: triplet.arch, os: currentArch.os });
                             this.updateVcpkgSetting(this._targetTripletConfig, newTriplet);
                             this.logInfo('Automatically update target triplet to: ' + newTriplet);
                             vscode.window.showInformationMessage('Automatically update target triplet to: ' + newTriplet);
@@ -96,11 +98,11 @@ export class ConfigurationManager implements vscode.Disposable {
                 });
 
                 this.getCurrentHostTriplet().then((currentHostTriplet) => {
-                    const currentArch = this.getArch();
-                    if (currentHostTriplet !== undefined && this.combineTriplet(currentArch) !== currentHostTriplet) {
-                        const triplet = this.separateTriplet(currentHostTriplet);
+                    const currentArch = getArch();
+                    if (currentHostTriplet !== undefined && combineTriplet(currentArch) !== currentHostTriplet) {
+                        const triplet = separateTriplet(currentHostTriplet);
                         if (triplet.os !== currentArch.os) {
-                            const newTriplet = this.combineTriplet({ arch: triplet.arch, os: currentArch.os });
+                            const newTriplet = combineTriplet({ arch: triplet.arch, os: currentArch.os });
                             this.updateVcpkgSetting(this._hostTripletConfig, newTriplet);
                             this.logInfo('Automatically update host triplet to: ' + newTriplet);
                             vscode.window.showInformationMessage('Automatically update host triplet to: ' + newTriplet);
@@ -119,7 +121,7 @@ export class ConfigurationManager implements vscode.Disposable {
         this._logMgr.logErr('configuration.ts: ' + content);
     }
 
-    public eventCallback(request: keyof VcpkgEventPayloads, result: any) {
+    public eventCallback<K extends keyof VcpkgEventPayloads>(request: K, result: VcpkgEventPayloads[K]) {
         switch (request) {
             case 'getVcpkgPathFromInfoSidebar':
                 {
@@ -157,17 +159,19 @@ export class ConfigurationManager implements vscode.Disposable {
                 break;
             case 'setVcpkgPath':
                 {
-                    this.setVcpkgPath(result);
+                    if (typeof result === 'string') {
+                        this.setVcpkgPath(result);
+                    }
                 }
                 break;
             case 'setCurrentTriplet':
                 {
-                    this.setTargetTripletByString(result);
+                    this.setTargetTripletByString(result as string);
                 }
                 break;
             case 'setHostTriplet':
                 {
-                    this.setHostTripletByString(result);
+                    this.setHostTripletByString(result as string);
                 }
                 break;
             case 'setManifestMode':
@@ -200,85 +204,6 @@ export class ConfigurationManager implements vscode.Disposable {
         });
     }
 
-    private getArch() {
-        this.logInfo('process.platform: ' + process.platform);
-        this.logInfo('os.arch: ' + process.arch);
-
-        if (process.platform === 'win32') {
-            if (process.arch === 'x64') {
-                return { arch: 'x64', os: 'windows' };
-            } else if (process.arch === 'x86') {
-                return { arch: 'x86', os: 'windows' };
-            } else if (process.arch.toLowerCase() === 'arm') {
-                return { arch: 'arm', os: 'windows' };
-            } else if (process.arch.toLowerCase() === 'arm64') {
-                return { arch: 'arm64', os: 'windows' };
-            } else {
-                return { arch: 'x86', os: 'windows' };
-            }
-        } else if (process.platform === 'darwin') {
-            if (process.arch.toLowerCase() === 'arm64') {
-                return { arch: 'arm64', os: 'osx' };
-            } else {
-                return { arch: 'x64', os: 'osx' };
-            }
-        } else if (process.platform === 'linux') {
-            return { arch: 'x64', os: 'linux' };
-        } else {
-            vscode.window.showWarningMessage('Warning! Could NOT detect current triplet! Please set triplet manually.');
-            return { arch: 'undefined', os: 'undefined' };
-        }
-    }
-
-    private combineTriplet(triplet: { arch: string; os: string }) {
-        return triplet.arch + '-' + triplet.os;
-    }
-
-    private separateTriplet(triplet: string) {
-        const sep = triplet.indexOf('-');
-        const arch = triplet.slice(0, sep);
-        const os = triplet.slice(sep + 1, triplet.length);
-
-        return { arch: arch, os: os };
-    }
-
-    private getEnvironmentValue(name: string) {
-        if (name.search(/\$[Ee][Nn][Vv]{(.+)}/) !== -1) {
-            const envName = name.match(/\$[Ee][Nn][Vv]{(.+)}/)?.at(1);
-
-            if (envName !== undefined && process.env[envName] !== undefined) {
-                return process.env[envName];
-            } else {
-                return '';
-            }
-        } else {
-            return '';
-        }
-    }
-
-    private convertToAbsolutePath(path: string) {
-        if (path.search(/\$[Ee][Nn][Vv]{(.+)}/) !== -1) {
-            const envName = this.getEnvironmentValue(path);
-            const suffix = path.match(/\$[Ee][Nn][Vv]{.+}(.*)/)?.at(1);
-
-            if (envName) {
-                return envName + suffix;
-            }
-        }
-        return path;
-    }
-
-    private getVcpkgPathFromEnv() {
-        const envVar = process.env[this._vcpkgRootConfig];
-        // const envVar = this._context.environmentVariableCollection.get(this._vcpkgRootConfig);
-
-        if (envVar !== undefined && envVar.length !== 0) {
-            return envVar;
-        }
-
-        return undefined;
-    }
-
     private async getVcpkgPathFromConfig() {
         const tryFirst = workspace.getConfiguration('vcpkg').get<string>(this._vcpkgPathConfig);
 
@@ -309,7 +234,7 @@ export class ConfigurationManager implements vscode.Disposable {
     private async isVcpkgExistInPath(path: string) {
         let fullPath = '';
         if (path.search(/\$[Ee][Nn][Vv]{(.+)}/) === 0) {
-            const envVar = this.convertToAbsolutePath(path);
+            const envVar = convertToAbsolutePath(path);
             if (envVar.length) {
                 fullPath = this.generateVcpkgFullPath(envVar);
             }
@@ -336,11 +261,11 @@ export class ConfigurationManager implements vscode.Disposable {
         return this._cmakeService.getCMakeConfigureSetting(setting);
     }
 
-    private async updateCMakeSetting(subSetting: string, value: any, userScope: boolean = false) {
+    private async updateCMakeSetting(subSetting: string, value: string | boolean | string[] | Record<string, unknown>, userScope: boolean = false) {
         return this._cmakeService.updateCMakeSetting(subSetting, value, userScope);
     }
 
-    private async updateVcpkgSetting(subSetting: string, value: any, userScope: boolean = false) {
+    private async updateVcpkgSetting(subSetting: string, value: string | boolean | string[] | Record<string, unknown>, userScope: boolean = false) {
         await workspace.getConfiguration('vcpkg').update(subSetting, value, userScope);
     }
 
@@ -381,8 +306,8 @@ export class ConfigurationManager implements vscode.Disposable {
                 await vscode.workspace.fs.stat(vscode.Uri.file(originToolchain));
                 // check whether the vcpkg path in toolchain is not the same with the path in settings
                 if (
-                    this.convertToAbsolutePath(originToolchain) !==
-                    this.convertToAbsolutePath(vcpkgRoot + '/scripts/buildsystems/vcpkg.cmake')
+                    convertToAbsolutePath(originToolchain) !==
+                    convertToAbsolutePath(vcpkgRoot + '/scripts/buildsystems/vcpkg.cmake')
                 ) {
                     this.logInfo('Detected invalid toolchain.');
                     return false;
@@ -423,8 +348,8 @@ export class ConfigurationManager implements vscode.Disposable {
             }
         }
 
-        let cleanConfig = this.getCleanVcpkgToolchian();
-        (cleanConfig as any)['CMAKE_TOOLCHAIN_FILE'] = path.join(vcpkgRoot, 'scripts', 'buildsystems', 'vcpkg.cmake');
+        let cleanConfig: Record<string, unknown> = this.getCleanVcpkgToolchian();
+        cleanConfig['CMAKE_TOOLCHAIN_FILE'] = path.join(vcpkgRoot, 'scripts', 'buildsystems', 'vcpkg.cmake');
 
         this.updateCMakeSetting(this._configConfigSettingConfig, cleanConfig);
 
@@ -483,11 +408,11 @@ export class ConfigurationManager implements vscode.Disposable {
         this.updateCMakeSetting(this._cmakeOptionConfig, newConfigs);
     }
 
-    private async initCMakeSettings(vcpkgPath: string) {
+    private async initCMakeSettings(vcpkgRoot: string) {
         this.logInfo('init cmake settings.');
-        this.updateVcpkgSetting(this._vcpkgPathConfig, vcpkgPath, true);
+        this.updateVcpkgSetting(this._vcpkgPathConfig, vcpkgRoot, true);
 
-        let currArch = this.combineTriplet(this.getArch());
+        let currArch = combineTriplet(getArch());
 
         this.logInfo('current arch is: ' + currArch);
 
@@ -501,7 +426,7 @@ export class ConfigurationManager implements vscode.Disposable {
         this.logInfo('update use static lib to: ' + false);
 
         this.updateCurrentTripletSetting();
-        if (!(await this.addVcpkgToolchain(vcpkgPath))) {
+        if (!(await this.addVcpkgToolchain(vcpkgRoot))) {
             return false;
         }
 
@@ -602,7 +527,7 @@ export class ConfigurationManager implements vscode.Disposable {
             return;
         }
 
-        let vcpkgRootEnv = await this.getVcpkgPathFromEnv();
+        let vcpkgRootEnv = await getVcpkgPathFromEnv();
         if (vcpkgRootEnv !== undefined && vcpkgRootEnv === path) {
             this.logInfo('vcpkg already set to ' + oldPath + '.');
             return;
@@ -653,7 +578,7 @@ export class ConfigurationManager implements vscode.Disposable {
             return;
         }
 
-        let vcpkgRootEnv = await this.getVcpkgPathFromEnv();
+        let vcpkgRootEnv = await getVcpkgPathFromEnv();
         if (vcpkgRootEnv !== undefined) {
             if (await this.isVcpkgExistInPath(vcpkgRootEnv)) {
                 if (!this.initCMakeSettings(vcpkgRootEnv)) {
@@ -757,7 +682,7 @@ export class ConfigurationManager implements vscode.Disposable {
         const config = await this.getVcpkgPathFromConfig();
         // environment variable
         if (config?.indexOf('$ENV') === 0) {
-            return this.getVcpkgPathFromEnv();
+            return getVcpkgPathFromEnv();
         } else {
             // true real path
             return config;
@@ -1011,7 +936,7 @@ export class ConfigurationManager implements vscode.Disposable {
     private handleDefaultTripletChange() {
         this.logInfo('detect vcpkg target tripconst configuration changed.');
         let currSel = workspace.getConfiguration('vcpkg').get<string>(this._targetTripletConfig);
-        this.useLibType(<any>this.isStaticLib(currSel as string));
+        this.useLibType(this.isStaticLib(currSel as string) || false);
     }
 
     private handleUseDynamicCRTChange() {
@@ -1019,14 +944,14 @@ export class ConfigurationManager implements vscode.Disposable {
             let isUseDynamic = workspace.getConfiguration('vcpkg').get<boolean>(this._vcpkgUseDynamicCRTConfig);
             this.logInfo('detect vcpkg CRT configuration changed to ' + (isUseDynamic ? 'dynamic' : 'static'));
 
-            this.useCRTType(<any>isUseDynamic);
+            this.useCRTType(isUseDynamic || false);
         }
     }
 
     private handleUseStaticLibChange() {
         let isUseStatic = workspace.getConfiguration('vcpkg').get<boolean>(this._useStaticLibConfig);
         this.logInfo('detect vcpkg static lib configuration changed to ' + (isUseStatic ? 'static' : 'dynamic'));
-        this.useLibType(<any>isUseStatic);
+        this.useLibType(isUseStatic || false);
     }
 
     private handleAdditionalOptionsChange() {

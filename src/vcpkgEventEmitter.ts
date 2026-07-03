@@ -21,10 +21,10 @@ export interface VcpkgEventPayloads {
     setInstallOptions: string | { options: string[]; features: string[] };
     setPortFeatures: string[];
     getInstallOptions: null;
-    onDidChangeBreakpoints: any;
+    onDidChangeBreakpoints: null;
 }
 
-export type EventCallback = (request: keyof VcpkgEventPayloads, result: any) => void;
+export type EventCallback = <K extends keyof VcpkgEventPayloads>(request: K, result: VcpkgEventPayloads[K]) => void;
 
 export class VcpkgEventEmitter {
     private _logMgr: VcpkgLogMgr;

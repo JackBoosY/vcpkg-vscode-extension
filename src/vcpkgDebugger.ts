@@ -35,7 +35,7 @@ export class VcpkgDebugger {
         });
     }
 
-    public eventCallback(request: keyof VcpkgEventPayloads, result: any) {
+    public eventCallback<K extends keyof VcpkgEventPayloads>(request: K, result: VcpkgEventPayloads[K]) {
         switch (request) {
             case 'getDebugPortName':
                 {
@@ -49,18 +49,24 @@ export class VcpkgDebugger {
                 break;
             case 'setDefaultTriplet':
                 {
-                    this.setDefaultTriplet(result as string);
-                    this._emitter.fire('VcpkgInfoSideBarViewProvider', 'setDefaultTriplet', result);
+                    if (typeof result === 'string') {
+                        this.setDefaultTriplet(result);
+                        this._emitter.fire('VcpkgInfoSideBarViewProvider', 'setDefaultTriplet', result);
+                    }
                 }
                 break;
             case 'setInstallOptions':
                 {
-                    this.setExtraInstallOptions(result);
+                    if (Array.isArray(result)) {
+                        this.setExtraInstallOptions(result);
+                    }
                 }
                 break;
             case 'setPortFeatures':
                 {
-                    this.setPortFeatures(result);
+                    if (Array.isArray(result)) {
+                        this.setPortFeatures(result);
+                    }
                 }
                 break;
             case 'getInstallOptions':
@@ -155,7 +161,7 @@ export class VcpkgDebugger {
         }
     }
 
-    public setDefaultTriplet(triplet: any) {
+    public setDefaultTriplet(triplet: string | undefined) {
         if (triplet === undefined || !triplet.length) {
             this._logMgr.logErr('Current default triplet is empty!');
             vscode.window.showErrorMessage('Current default triplet is empty! Please manually set first.');
