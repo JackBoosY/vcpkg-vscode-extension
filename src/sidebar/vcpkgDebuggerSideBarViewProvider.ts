@@ -154,8 +154,6 @@ export class VcpkgDebuggerSideBarViewProvider implements vscode.WebviewViewProvi
 				<ul class="feature-options">
 				</ul>
 
-				<button class="set-debug-options-button">Set debug options</button>
-
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;

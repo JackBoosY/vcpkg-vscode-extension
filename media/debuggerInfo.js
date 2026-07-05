@@ -6,12 +6,18 @@
     // @ts-ignore
     const vscode = acquireVsCodeApi();
     let portName = "";
-
-    // @ts-ignore
-    document.querySelector('.set-debug-options-button').addEventListener('click', () => {
-        setDebuggerInfo();
-    });
     
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    let setDebuggerInfoTimeout = null;
+    function scheduleSetDebuggerInfo() {
+        if (setDebuggerInfoTimeout) {
+            clearTimeout(setDebuggerInfoTimeout);
+        }
+        setDebuggerInfoTimeout = setTimeout(() => {
+            setDebuggerInfo();
+        }, 300);
+    }
+
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
@@ -66,15 +72,21 @@
             }
         });
 
+        input.addEventListener('change', () => {
+            scheduleSetDebuggerInfo();
+        });
+
         addButton.addEventListener('click', () => {
             if (input.value.trim() === "") { return; } // Prevent adding if empty
             li.classList.remove('show-add');
             createRow(listContainer, "");
+            scheduleSetDebuggerInfo();
         });
 
         removeButton.addEventListener('click', () => {
             if (listContainer.children.length > 1) {
                 listContainer.removeChild(li);
+                scheduleSetDebuggerInfo();
             }
         });
     }
