@@ -80,26 +80,18 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
                 return 'undefined';
             };
 
-            const toDep = (index: string, dependenciesObj: Record<string, string | { name?: string; version?: string }> | string[]): Dependency => {
+            const toDep = (item: any, indexOrKey: string): Dependency => {
                 let name, version;
                 
-                if (Array.isArray(dependenciesObj)) {
-                    // Array of strings
-                    name = dependenciesObj[Number(index)] as string;
+                if (typeof item === 'string') {
+                    name = item;
                     version = getDependencyVersion(name);
+                } else if (typeof item === 'object' && item !== null) {
+                    name = item.name || indexOrKey; // Fallback to key if name is undefined
+                    version = item.version !== undefined ? item.version : getDependencyVersion(name);
                 } else {
-                    // Object structure
-                    const item = dependenciesObj[index];
-                    if (typeof item === 'string') {
-                        name = item;
-                        version = getDependencyVersion(name);
-                    } else if (typeof item === 'object' && item !== null) {
-                        name = item.name || index; // Fallback to key if name is undefined
-                        version = item.version !== undefined ? item.version : getDependencyVersion(name);
-                    } else {
-                        name = index;
-                        version = 'undefined';
-                    }
+                    name = indexOrKey;
+                    version = 'undefined';
                 }
 
                 return new Dependency(name, version, vscode.TreeItemCollapsibleState.None, {
@@ -109,9 +101,14 @@ export class DepNodeProvider implements vscode.TreeDataProvider<Dependency> {
                 });
             };
 
-            const deps = packageJson.dependencies
-                ? Object.keys(packageJson.dependencies).map((dep) => toDep(dep, packageJson.dependencies))
-                : [];
+            let deps: Dependency[] = [];
+            if (packageJson.dependencies) {
+                if (Array.isArray(packageJson.dependencies)) {
+                    deps = packageJson.dependencies.map((dep: any, index: number) => toDep(dep, index.toString()));
+                } else if (typeof packageJson.dependencies === 'object') {
+                    deps = Object.keys(packageJson.dependencies).map((key) => toDep(packageJson.dependencies[key], key));
+                }
+            }
             return deps;
         } else {
             return [];
