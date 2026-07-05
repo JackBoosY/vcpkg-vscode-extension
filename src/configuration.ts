@@ -737,6 +737,7 @@ export class ConfigurationManager implements vscode.Disposable {
     public async setTargetTripletByString(triplet: string) {
         await this.updateVcpkgSetting(this._targetTripletConfig, triplet);
         this.logInfo('update target triplet to: ' + triplet);
+        await this.updateCurrentTripletSetting();
         vscode.window.showInformationMessage('Update target triplet to: ' + triplet);
         this.updateStatusBar(true);
     }

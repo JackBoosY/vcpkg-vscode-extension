@@ -89,12 +89,22 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider 
                         this._emitter.fire('ConfigurationManager', 'getManifestModeFromInfoSidebar', null);
                     }
                     break;
-                case 'setVcpkgOptions': {
-                    this._emitter.fire('ConfigurationManager', 'setVcpkgPath', data.vcpkgPath);
-                    this._emitter.fire('ConfigurationManager', 'setCurrentTriplet', data.currentTriplet);
-                    this._emitter.fire('ConfigurationManager', 'setHostTriplet', data.hostTriplet);
-                    this._emitter.fire('ConfigurationManager', 'setManifestMode', data.manifestMode);
+                case 'setVcpkgPath': {
+                    this._emitter.fire('ConfigurationManager', 'setVcpkgPath', data.value);
+                    break;
+                }
+                case 'setCurrentTriplet': {
+                    this._emitter.fire('ConfigurationManager', 'setCurrentTriplet', data.value);
+                    break;
+                }
+                case 'setHostTriplet': {
+                    this._emitter.fire('ConfigurationManager', 'setHostTriplet', data.value);
+                    break;
+                }
+                case 'setManifestMode': {
+                    this._emitter.fire('ConfigurationManager', 'setManifestMode', data.value);
                     // this._emitter.fire("ConfigurationManager", "useLibType", data.manifestMode);
+                    break;
                 }
             }
         });
@@ -149,8 +159,6 @@ export class VcpkgInfoSideBarViewProvider implements vscode.WebviewViewProvider 
 				<br>
 				<ul class="manifest-mode">
 				</ul>
-
-				<button class="set-vcpkg-option-button">Apply</button>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
