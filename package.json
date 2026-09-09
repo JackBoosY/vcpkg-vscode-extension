@@ -5,7 +5,7 @@
   "icon": "images/vcpkg-logo.png",
   "publisher": "JackBoosY",
   "license": "MIT",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "engines": {
     "vscode": "^1.76.0"
   },
