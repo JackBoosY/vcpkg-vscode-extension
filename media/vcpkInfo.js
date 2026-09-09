@@ -6,11 +6,6 @@
     // @ts-ignore
     const vscode = acquireVsCodeApi();
 
-    // @ts-ignore
-    document.querySelector('.set-vcpkg-option-button').addEventListener('click', () => {
-        vscode.postMessage({ type: "setVcpkgOptions", vcpkgPath: getVcpkgPath(), currentTriplet: getCurrentTriplet(), hostTriplet: getHostTriplet(), libType:getLibraryType(), manifestMode: getManifest() });
-    });
-
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
@@ -47,15 +42,18 @@
 
     function setVcpkgPath(path) {
         const ul = document.querySelector('.vcpkg-path');
-        const input = ul?.querySelector('input');
+        const input = /** @type {HTMLInputElement | null} */ (ul?.querySelector('input'));
         if (input) {
-            input.textContent = path;
+            input.value = path;
         }
         else {
             const newInput = document.createElement('input');
             newInput.className = 'text-input';
             newInput.type = 'text';
             newInput.value = path;
+            newInput.addEventListener('change', () => {
+                vscode.postMessage({ type: "setVcpkgPath", value: getVcpkgPath() });
+            });
             ul?.appendChild(newInput);
         }
     }
@@ -90,6 +88,9 @@
             }
     
             sel.selectedIndex = idx;
+            sel.addEventListener('change', () => {
+                vscode.postMessage({ type: "setCurrentTriplet", value: getCurrentTriplet() });
+            });
             ul?.appendChild(sel);
         }
     }
@@ -125,6 +126,9 @@
             }
     
             sel.selectedIndex = idx;
+            sel.addEventListener('change', () => {
+                vscode.postMessage({ type: "setHostTriplet", value: getHostTriplet() });
+            });
             ul?.appendChild(sel);
         }
     }
@@ -144,6 +148,9 @@
         sel.appendChild(triplet1);
         sel.appendChild(triplet2);
         sel.selectedIndex = 0;
+        sel.addEventListener('change', () => {
+            // we don't have a backend command setup for library type in the UI, keeping listener logic structure.
+        });
 
         ul?.appendChild(sel);
     }
@@ -163,6 +170,9 @@
         sel.appendChild(triplet1);
         sel.appendChild(triplet2);
         sel.selectedIndex = 1;
+        sel.addEventListener('change', () => {
+            vscode.postMessage({ type: "setManifestMode", value: getManifest() });
+        });
 
         ul?.appendChild(sel);
     }

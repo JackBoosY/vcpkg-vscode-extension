@@ -47,6 +47,8 @@ body {
 	display: flex;
 	margin-bottom: 0.4em;
 	border: 1px solid var(--vscode-input-border);
+	position: relative;
+	align-items: center;
 }
 
 .text-input {
@@ -57,4 +59,51 @@ body {
 	background-color: var(--vscode-input-background);
 	border: none;
 	padding: 0 0.6em;
+	height: 24px;
+	line-height: 24px;
+	outline: none;
 }
+
+.row-button {
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	user-select: none;
+	background-color: var(--vscode-input-background);
+	color: var(--vscode-foreground);
+}
+
+.row-button:hover {
+	background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.add-button {
+	display: none;
+	color: var(--vscode-charts-green);
+	font-weight: bold;
+}
+
+.remove-button {
+	display: none;
+	color: var(--vscode-charts-red);
+}
+
+/* For already added rows (not the last element), show remove button on hover */
+.bg-entry:not(:last-child):hover .remove-button {
+	display: flex;
+}
+
+/* The last row shows add button if it has the show-add class OR on hover */
+.bg-entry:last-child.show-add .add-button,
+.bg-entry:last-child:hover .add-button {
+	display: flex;
+}
+
+/* Ensure remove button is never shown on the last row */
+.bg-entry:last-child .remove-button {
+	display: none !important;
+}
+
