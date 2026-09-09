@@ -220,7 +220,7 @@ export class VcpkgDebugger {
         let foundCommand = false;
         for (let index = 0; index < parsed.length; index++) {
             const element = parsed[index];
-            if (element === '&') {
+            if (element === '&' || element === '&&' || element === ';' || element.endsWith(';')) {
                 isInstall = true;
                 continue;
             }
@@ -236,7 +236,7 @@ export class VcpkgDebugger {
         }
 
         // get features first
-        if (options) {
+        if (options && options.length > 2) {
             features = this.parseFeature(options[2]);
         }
 
@@ -310,10 +310,12 @@ export class VcpkgDebugger {
             triplet = ' --triplet ' + this._defaultTriplet + ' ';
         }
 
-        let portFeatures = '';
+        let portWithFeatures = modifiedPorts;
         if (this._portFeatures && this._portFeatures.length) {
-            portFeatures = '[' + this._portFeatures.join(',') + '] ';
+            portWithFeatures = `"${modifiedPorts}[${this._portFeatures.join(',')}]"`;
         }
+
+        let connector = process.platform === 'win32' ? '; & ' : ' && ';
 
         let command =
             '"${workspaceFolder}/vcpkg' +
@@ -321,12 +323,12 @@ export class VcpkgDebugger {
             '" remove ' +
             modifiedPorts +
             triplet +
-            ' --recurse;' +
-            ' & "${workspaceFolder}/vcpkg' +
+            ' --recurse' +
+            connector +
+            '"${workspaceFolder}/vcpkg' +
             exeSuffix +
             '" install ' +
-            modifiedPorts +
-            portFeatures +
+            portWithFeatures +
             ' ' +
             this._extraOptions.join(' ') +
             triplet +
