@@ -67,33 +67,26 @@ export class CmakeDebugger {
         } else {
             if (fullContent.has('tasks')) {
                 let taskArray = [];
-                let originCommand = '';
-                let currTask;
+                let modified = false;
                 for (let index = 0; index < fullContent['tasks'].length; index++) {
-                    const element = fullContent['tasks'][index];
+                    const element = { ...fullContent['tasks'][index] };
                     if (element['label'] === 'Debug vcpkg commands') {
-                        this._logMgr.logInfo('Found exists task, update now.');
-
-                        currTask = element;
-                        originCommand = element['command'];
-                    } else {
-                        taskArray.push(element);
+                        let originCommand = element['command'] || '';
+                        if (originCommand.indexOf('--x-cmake-configure-debug') === -1) {
+                            let config = originCommand + ' --x-cmake-configure-debug ' + this.generatePipeline();
+                            if (config.indexOf('--editable') === -1) {
+                                config += ' --editable';
+                            }
+                            element['command'] = config;
+                            modified = true;
+                            this._logMgr.logInfo('Update command ' + config + ' in Tasks json command');
+                        }
                     }
+                    taskArray.push(element);
                 }
 
-                if (originCommand) {
-                    if (originCommand.indexOf('--x-cmake-configure-debug') === -1) {
-                        let config =
-                            originCommand + ' --x-cmake-configure-debug ' + this.generatePipeline() + ' --editable';
-                        currTask['command'] = config;
-
-                        taskArray.push(currTask);
-
-                        this._logMgr.logInfo('Update command ' + config + ' in Tasks json command');
-                        await this.writeToFile('tasks', 'tasks', taskArray);
-                    } else {
-                        this._logMgr.logInfo('Already update command');
-                    }
+                if (modified) {
+                    await this.writeToFile('tasks', 'tasks', taskArray);
                 }
             } else {
                 this._logMgr.logInfo('Tasks item not found, new one now.');
@@ -122,37 +115,36 @@ export class CmakeDebugger {
         } else {
             if (fullContent.has('tasks')) {
                 let taskArray = [];
-                let originCommand = '';
-                let currTask;
+                let modified = false;
                 for (let index = 0; index < fullContent['tasks'].length; index++) {
-                    const element = fullContent['tasks'][index];
+                    const element = { ...fullContent['tasks'][index] };
                     if (element['label'] === 'Debug vcpkg commands') {
-                        this._logMgr.logInfo('Found exists task, update now.');
-
-                        currTask = element;
-                        originCommand = element['command'];
-                    } else {
-                        taskArray.push(element);
+                        if (element['command'] && element['command'].indexOf('--x-cmake-configure-debug') !== -1) {
+                            element['command'] = element['command'].replace(/\s*--x-cmake-configure-debug\s+\S+/, '');
+                            modified = true;
+                            this._logMgr.logInfo('Removed --x-cmake-configure-debug from command');
+                        }
                     }
+                    taskArray.push(element);
                 }
 
-                if (originCommand) {
-                    if (currTask['command'].indexOf(' --x-cmake-configure-debug') !== -1) {
-                        let config = currTask['command'];
-                        config = config.slice(0, config.indexOf(' --x-cmake-configure-debug'));
-                        currTask['command'] = config;
-
-                        taskArray.push(currTask);
-
-                        this._logMgr.logInfo('Delete command in Tasks json command');
-                        await this.writeToFile('tasks', 'tasks', taskArray);
-                    } else {
-                        this._logMgr.logInfo('Command is alreay cleaned.');
-                    }
+                if (modified) {
+                    await this.writeToFile('tasks', 'tasks', taskArray);
                 }
             } else {
                 this._logMgr.logInfo('Tasks item not found, new one now.');
                 return;
+            }
+        }
+
+        if (process.platform !== 'win32') {
+            try {
+                const pipe = this.generatePipeline();
+                if (fs.existsSync(pipe)) {
+                    fs.unlinkSync(pipe);
+                }
+            } catch (e) {
+                // Ignore error
             }
         }
     }
@@ -162,19 +154,20 @@ export class CmakeDebugger {
         this.updateConfigurations();
     }
 
-    private updateConfigurations() {
+    public hasValidCMakeBreakpoint(): boolean {
         let breakPoints = debug.breakpoints;
-        let validBreakPoint = false;
         for (let index = 0; index < breakPoints.length; index++) {
             const element = breakPoints[index];
             // @ts-ignore
-            if (element.location.uri.toString().search('buildtrees') !== -1) {
-                // @ts-ignore
-                this._logMgr.logInfo('Found breakpoint path: ' + element.location.uri.toString());
-                validBreakPoint = true;
-                break;
+            if (element.enabled && element.location?.uri?.toString().search('buildtrees') !== -1) {
+                return true;
             }
         }
+        return false;
+    }
+
+    private updateConfigurations() {
+        let validBreakPoint = this.hasValidCMakeBreakpoint();
 
         if (validBreakPoint) {
             this._logMgr.logInfo('Found valid CMake breakpoint.');
@@ -187,10 +180,21 @@ export class CmakeDebugger {
 
     public stopWaitingDebug() {
         this._waitDebug = false;
+        if (process.platform !== 'win32') {
+            try {
+                const pipe = this.generatePipeline();
+                if (fs.existsSync(pipe)) {
+                    fs.unlinkSync(pipe);
+                }
+            } catch (e) {
+                // Ignore error
+            }
+        }
     }
 
     public async startDebugging(vcpkgRoot: string, currentTriplet: string) {
         this._logMgr.logInfo('Starting debug cmake.');
+        this.stopWaitingDebug();
         if (vcpkgRoot === undefined || !vcpkgRoot.length) {
             this._logMgr.logErr('vcpkgRoot(' + vcpkgRoot + ') is empty!');
             vscode.window.showErrorMessage('Vcpkg root is empty! Please manually set.');
@@ -202,33 +206,46 @@ export class CmakeDebugger {
         }
 
         let portName = this._port;
+        const pipe = this.generatePipeline();
         let outName = vcpkgRoot + '/buildtrees/' + portName + '/stdout-' + currentTriplet + '.log';
-        let content = '';
+        let configLogName = vcpkgRoot + '/buildtrees/' + portName + '/config-' + currentTriplet + '-out.log';
         let whenConfigure = false;
 
-        // wait for configure
-        this._logMgr.logInfo('Waiting for configure, reading output in ' + outName);
+        this._logMgr.logInfo(`Waiting for CMake configure debugger on pipe: ${pipe}`);
         this._waitDebug = true;
         do {
             if (!this._waitDebug) {
                 this._logMgr.logInfo('Cancel debug CMakeLists.');
                 return;
             }
+
+            // 1. Check if the Unix domain socket pipe file exists on disk
+            if (process.platform !== 'win32') {
+                if (fs.existsSync(pipe)) {
+                    whenConfigure = true;
+                    break;
+                }
+            }
+
+            // 2. Also check log files if available
             try {
-                const stat = await vscode.workspace.fs.stat(vscode.Uri.file(outName));
-                if (stat) {
-                    const buffer = await vscode.workspace.fs.readFile(vscode.Uri.file(outName));
-                    content = new TextDecoder('utf-8').decode(buffer);
-                    if (
-                        content.search('-- Configuring ') !== -1 &&
-                        content.search('-- Performing post-build validation') === -1
-                    ) {
-                        whenConfigure = true;
+                for (const logPath of [outName, configLogName]) {
+                    if (fs.existsSync(logPath)) {
+                        const buffer = await vscode.workspace.fs.readFile(vscode.Uri.file(logPath));
+                        const content = new TextDecoder('utf-8').decode(buffer);
+                        if (
+                            content.search('-- Configuring ') !== -1 ||
+                            content.search('Waiting for debugger client to connect') !== -1
+                        ) {
+                            whenConfigure = true;
+                            break;
+                        }
                     }
                 }
             } catch (e) {
                 // Ignore transient read errors
             }
+
             if (!whenConfigure) {
                 await sleep(100);
             }
@@ -236,14 +253,18 @@ export class CmakeDebugger {
 
         this._waitDebug = false;
 
-        this._logMgr.logInfo('Connecting cmake debug pipe.');
-        vscode.debug.startDebugging(undefined, {
-            name: 'Vcpkg extension Debugger',
-            request: 'launch',
-            type: 'cmake',
-            cmakeDebugType: 'external',
-            pipeName: this.generatePipeline(),
-            fromCommand: true,
-        });
+        if (whenConfigure) {
+            this._logMgr.logInfo('Connecting cmake debug pipe.');
+            // Allow a brief moment for the socket to initialize listening state
+            await sleep(200);
+            await vscode.debug.startDebugging(undefined, {
+                name: 'Vcpkg extension Debugger',
+                request: 'launch',
+                type: 'cmake',
+                cmakeDebugType: 'external',
+                pipeName: pipe,
+                fromCommand: true,
+            });
+        }
     }
 }

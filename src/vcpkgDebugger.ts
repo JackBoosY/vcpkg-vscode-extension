@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { VcpkgLogMgr } from './log';
 import { VcpkgEventEmitter, VcpkgEventPayloads } from './vcpkgEventEmitter';
 import { debug } from 'vscode';
@@ -178,18 +179,18 @@ export class VcpkgDebugger {
             // remove "vcpkg", "install", "port name"
             for (let index = 3; index < options.length; index++) {
                 const element = options[index];
-                if (element === '') {
+                if (!element) {
                     continue;
                 } else if (element === this.editableName) {
                     continue;
                 } else if (element === this.noBinraryCachingName) {
                     continue;
-                } else if (element === this.xCmakeDebugName) {
-                    index++;
-                } else if (element === this.xCmakeConfigureDebugName) {
-                    index++;
-                } else if (element === this.tripletName) {
-                    index++;
+                } else if (
+                    element === this.xCmakeDebugName ||
+                    element === this.xCmakeConfigureDebugName ||
+                    element === this.tripletName
+                ) {
+                    index++; // Skip the option's value
                 } else {
                     filited.push(element);
                 }
@@ -214,25 +215,11 @@ export class VcpkgDebugger {
         let options: string[] = [];
         let features: string[] = [];
 
-        let parsed = command.split(' ');
+        let parsed = command.split(/\s+/).filter(Boolean);
 
-        let isInstall = false;
-        let foundCommand = false;
-        for (let index = 0; index < parsed.length; index++) {
-            const element = parsed[index];
-            if (element === '&' || element === '&&' || element === ';' || element.endsWith(';')) {
-                isInstall = true;
-                continue;
-            }
-
-            if (isInstall) {
-                if (element.indexOf('vcpkg') !== -1) {
-                    foundCommand = true;
-                }
-                if (foundCommand) {
-                    options.push(element);
-                }
-            }
+        let installIndex = parsed.indexOf('install');
+        if (installIndex !== -1 && installIndex > 0) {
+            options = parsed.slice(installIndex - 1);
         }
 
         // get features first
@@ -315,9 +302,15 @@ export class VcpkgDebugger {
             portWithFeatures = `"${modifiedPorts}[${this._portFeatures.join(',')}]"`;
         }
 
+        let cleanPipeCmd = '';
+        if (process.platform !== 'win32') {
+            cleanPipeCmd = 'rm -f /tmp/vcpkg_ext_portfile_dbg /tmp/vscode-vcpkg-cmakelists-debugger-pipe && ';
+        }
+
         let connector = process.platform === 'win32' ? '; & ' : ' && ';
 
         let command =
+            cleanPipeCmd +
             '"${workspaceFolder}/vcpkg' +
             exeSuffix +
             '" remove ' +
@@ -332,7 +325,7 @@ export class VcpkgDebugger {
             ' ' +
             this._extraOptions.join(' ') +
             triplet +
-            ' --no-binarycaching --x-cmake-debug ' +
+            ' --editable --no-binarycaching --x-cmake-debug ' +
             this.getDebuggerPipe();
 
         this._logMgr.logInfo('generateCommand: ' + command);
@@ -428,17 +421,9 @@ export class VcpkgDebugger {
             command: '',
             problemMatcher: [
                 {
-                    pattern: [
-                        {
-                            regexp: '',
-                            file: 1,
-                            location: 2,
-                            message: 3,
-                        },
-                    ],
                     background: {
                         activeOnStart: true,
-                        beginsPattern: '.',
+                        beginsPattern: '^.*$',
                         endsPattern: 'Waiting for debugger client to connect',
                     },
                 },

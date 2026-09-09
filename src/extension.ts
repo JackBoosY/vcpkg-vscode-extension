@@ -89,23 +89,17 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.debug.onDidStartDebugSession((session) => {
+        vscode.debug.onDidStartDebugSession(async (session) => {
             if (session.name === 'Debug portfile(s)') {
                 logMgr.logInfo('Starting debug portfile.');
-                let root: string;
-                if (vscode.workspace.workspaceFolders !== undefined) {
-                    root = vscode.workspace.workspaceFolders[0].uri.fsPath;
-                    configMgr.getCurrentTriplet().then((triplet) => {
+                if (cmakeDbg.hasValidCMakeBreakpoint()) {
+                    const root = await configMgr.getVcpkgRealPath();
+                    const triplet = await configMgr.getCurrentTriplet();
+                    if (root) {
                         cmakeDbg.startDebugging(root, triplet || '');
-                    });
-                } else {
-                    logMgr.logErr('Should not reach here to getVcpkgRealPath.');
-                    configMgr.getVcpkgRealPath().then(r => {
-                        root = r || '';
-                        configMgr.getCurrentTriplet().then((triplet) => {
-                            cmakeDbg.startDebugging(root, triplet || '');
-                        });
-                    });
+                    } else {
+                        logMgr.logErr('vcpkg root path not found');
+                    }
                 }
             }
         }),
@@ -113,8 +107,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.debug.onDidTerminateDebugSession((session) => {
-            if (session.name === 'Debug portfile(s)') {
-                logMgr.logInfo('Stop debug.');
+            if (session.name === 'Debug portfile(s)' || session.name === 'Vcpkg extension Debugger') {
+                logMgr.logInfo(`Stop debug session: ${session.name}`);
                 cmakeDbg.stopWaitingDebug();
             }
         }),
