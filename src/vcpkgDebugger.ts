@@ -103,6 +103,20 @@ export class VcpkgDebugger {
         return this.getModifiedPorts() !== '';
     }
 
+    public hasCMakeListsBreakpoint(): boolean {
+        let breakPoints = debug.breakpoints;
+        for (let index = 0; index < breakPoints.length; index++) {
+            const element = breakPoints[index];
+            if (!element.enabled || !(element instanceof vscode.SourceBreakpoint)) {
+                continue;
+            }
+            if (element.location.uri.toString().search('buildtrees') !== -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public getModifiedPorts() {
         let ports: string[] = [];
         let breakPoints = debug.breakpoints;
@@ -114,14 +128,21 @@ export class VcpkgDebugger {
             if (!(element instanceof vscode.SourceBreakpoint)) {
                 continue;
             }
-            if (element.location.uri.toString().search('portfile.cmake') !== -1) {
-                let valid = element.location.uri
-                    .toString()
-                    .substring(
-                        element.location.uri.toString().search('ports/') + 'ports/'.length,
-                        element.location.uri.toString().search('/portfile.cmake'),
-                    );
-                if (ports.indexOf(valid) === -1) {
+            const uriStr = element.location.uri.toString();
+            if (uriStr.search('portfile.cmake') !== -1 && uriStr.search('ports/') !== -1) {
+                let valid = uriStr.substring(
+                    uriStr.search('ports/') + 'ports/'.length,
+                    uriStr.search('/portfile.cmake'),
+                );
+                if (valid && ports.indexOf(valid) === -1) {
+                    ports.push(valid);
+                }
+            } else if (uriStr.search('buildtrees/') !== -1) {
+                let valid = uriStr.substring(
+                    uriStr.search('buildtrees/') + 'buildtrees/'.length,
+                );
+                valid = valid.substring(0, valid.indexOf('/'));
+                if (valid && ports.indexOf(valid) === -1) {
                     ports.push(valid);
                 }
             }
@@ -135,7 +156,7 @@ export class VcpkgDebugger {
         if (ports.length !== 1) {
             this._logMgr.logInfo('Detected multiple ports. Not supported.');
             vscode.window.showErrorMessage('Only supports to set breakpoint in one port!');
-            return;
+            return '';
         }
 
         this._logMgr.logInfo('Breakpoints are from ports:');
@@ -307,6 +328,14 @@ export class VcpkgDebugger {
             cleanPipeCmd = 'rm -f /tmp/vcpkg_ext_portfile_dbg /tmp/vscode-vcpkg-cmakelists-debugger-pipe && ';
         }
 
+        let cmakeConfigureDebugOpt = '';
+        if (this.hasCMakeListsBreakpoint()) {
+            const cmakePipe = process.platform === 'win32'
+                ? '\\\\.\\\\pipe\\\\vscode-vcpkg-cmake-debugger-pipe'
+                : '/tmp/vscode-vcpkg-cmakelists-debugger-pipe';
+            cmakeConfigureDebugOpt = ' --x-cmake-configure-debug ' + cmakePipe;
+        }
+
         let connector = process.platform === 'win32' ? '; & ' : ' && ';
 
         let command =
@@ -326,7 +355,8 @@ export class VcpkgDebugger {
             this._extraOptions.join(' ') +
             triplet +
             ' --editable --no-binarycaching --x-cmake-debug ' +
-            this.getDebuggerPipe();
+            this.getDebuggerPipe() +
+            cmakeConfigureDebugOpt;
 
         this._logMgr.logInfo('generateCommand: ' + command);
 
@@ -421,10 +451,14 @@ export class VcpkgDebugger {
             command: '',
             problemMatcher: [
                 {
+                    owner: 'custom',
+                    pattern: {
+                        regexp: '^$',
+                    },
                     background: {
                         activeOnStart: true,
                         beginsPattern: '^.*$',
-                        endsPattern: 'Waiting for debugger client to connect',
+                        endsPattern: '^.*Waiting for debugger client to connect.*$',
                     },
                 },
             ],

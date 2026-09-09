@@ -205,11 +205,19 @@ export class CmakeDebugger {
             return;
         }
 
-        let portName = this._port;
         const pipe = this.generatePipeline();
-        let outName = vcpkgRoot + '/buildtrees/' + portName + '/stdout-' + currentTriplet + '.log';
-        let configLogName = vcpkgRoot + '/buildtrees/' + portName + '/config-' + currentTriplet + '-out.log';
         let whenConfigure = false;
+
+        // Clean stale pipe if any
+        if (process.platform !== 'win32') {
+            try {
+                if (fs.existsSync(pipe)) {
+                    fs.unlinkSync(pipe);
+                }
+            } catch (e) {
+                // Ignore error
+            }
+        }
 
         this._logMgr.logInfo(`Waiting for CMake configure debugger on pipe: ${pipe}`);
         this._waitDebug = true;
@@ -219,7 +227,6 @@ export class CmakeDebugger {
                 return;
             }
 
-            // 1. Check if the Unix domain socket pipe file exists on disk
             if (process.platform !== 'win32') {
                 if (fs.existsSync(pipe)) {
                     whenConfigure = true;
@@ -227,27 +234,8 @@ export class CmakeDebugger {
                 }
             }
 
-            // 2. Also check log files if available
-            try {
-                for (const logPath of [outName, configLogName]) {
-                    if (fs.existsSync(logPath)) {
-                        const buffer = await vscode.workspace.fs.readFile(vscode.Uri.file(logPath));
-                        const content = new TextDecoder('utf-8').decode(buffer);
-                        if (
-                            content.search('-- Configuring ') !== -1 ||
-                            content.search('Waiting for debugger client to connect') !== -1
-                        ) {
-                            whenConfigure = true;
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {
-                // Ignore transient read errors
-            }
-
             if (!whenConfigure) {
-                await sleep(100);
+                await sleep(200);
             }
         } while (!whenConfigure);
 
@@ -255,8 +243,8 @@ export class CmakeDebugger {
 
         if (whenConfigure) {
             this._logMgr.logInfo('Connecting cmake debug pipe.');
-            // Allow a brief moment for the socket to initialize listening state
-            await sleep(200);
+            // Allow CMake a brief moment to initialize the listening socket
+            await sleep(300);
             await vscode.debug.startDebugging(undefined, {
                 name: 'Vcpkg extension Debugger',
                 request: 'launch',
