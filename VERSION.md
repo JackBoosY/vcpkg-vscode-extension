@@ -1,5 +1,17 @@
 # History
 
+## 2.4.1
+Bug fixes:
+
+- Fix Debug issues
+
+## 2.4.0
+Improvements:
+
+- Improve sidebar
+- Improve code
+- Add UTs
+
 ## 2.3.1
 Bug fixes:
 

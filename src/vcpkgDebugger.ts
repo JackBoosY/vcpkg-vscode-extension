@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { VcpkgLogMgr } from './log';
 import { VcpkgEventEmitter, VcpkgEventPayloads } from './vcpkgEventEmitter';
 import { debug } from 'vscode';
@@ -102,6 +103,20 @@ export class VcpkgDebugger {
         return this.getModifiedPorts() !== '';
     }
 
+    public hasCMakeListsBreakpoint(): boolean {
+        let breakPoints = debug.breakpoints;
+        for (let index = 0; index < breakPoints.length; index++) {
+            const element = breakPoints[index];
+            if (!element.enabled || !(element instanceof vscode.SourceBreakpoint)) {
+                continue;
+            }
+            if (element.location.uri.toString().search('buildtrees') !== -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public getModifiedPorts() {
         let ports: string[] = [];
         let breakPoints = debug.breakpoints;
@@ -113,14 +128,21 @@ export class VcpkgDebugger {
             if (!(element instanceof vscode.SourceBreakpoint)) {
                 continue;
             }
-            if (element.location.uri.toString().search('portfile.cmake') !== -1) {
-                let valid = element.location.uri
-                    .toString()
-                    .substring(
-                        element.location.uri.toString().search('ports/') + 'ports/'.length,
-                        element.location.uri.toString().search('/portfile.cmake'),
-                    );
-                if (ports.indexOf(valid) === -1) {
+            const uriStr = element.location.uri.toString();
+            if (uriStr.search('portfile.cmake') !== -1 && uriStr.search('ports/') !== -1) {
+                let valid = uriStr.substring(
+                    uriStr.search('ports/') + 'ports/'.length,
+                    uriStr.search('/portfile.cmake'),
+                );
+                if (valid && ports.indexOf(valid) === -1) {
+                    ports.push(valid);
+                }
+            } else if (uriStr.search('buildtrees/') !== -1) {
+                let valid = uriStr.substring(
+                    uriStr.search('buildtrees/') + 'buildtrees/'.length,
+                );
+                valid = valid.substring(0, valid.indexOf('/'));
+                if (valid && ports.indexOf(valid) === -1) {
                     ports.push(valid);
                 }
             }
@@ -134,7 +156,7 @@ export class VcpkgDebugger {
         if (ports.length !== 1) {
             this._logMgr.logInfo('Detected multiple ports. Not supported.');
             vscode.window.showErrorMessage('Only supports to set breakpoint in one port!');
-            return;
+            return '';
         }
 
         this._logMgr.logInfo('Breakpoints are from ports:');
@@ -178,18 +200,18 @@ export class VcpkgDebugger {
             // remove "vcpkg", "install", "port name"
             for (let index = 3; index < options.length; index++) {
                 const element = options[index];
-                if (element === '') {
+                if (!element) {
                     continue;
                 } else if (element === this.editableName) {
                     continue;
                 } else if (element === this.noBinraryCachingName) {
                     continue;
-                } else if (element === this.xCmakeDebugName) {
-                    index++;
-                } else if (element === this.xCmakeConfigureDebugName) {
-                    index++;
-                } else if (element === this.tripletName) {
-                    index++;
+                } else if (
+                    element === this.xCmakeDebugName ||
+                    element === this.xCmakeConfigureDebugName ||
+                    element === this.tripletName
+                ) {
+                    index++; // Skip the option's value
                 } else {
                     filited.push(element);
                 }
@@ -214,29 +236,15 @@ export class VcpkgDebugger {
         let options: string[] = [];
         let features: string[] = [];
 
-        let parsed = command.split(' ');
+        let parsed = command.split(/\s+/).filter(Boolean);
 
-        let isInstall = false;
-        let foundCommand = false;
-        for (let index = 0; index < parsed.length; index++) {
-            const element = parsed[index];
-            if (element === '&') {
-                isInstall = true;
-                continue;
-            }
-
-            if (isInstall) {
-                if (element.indexOf('vcpkg') !== -1) {
-                    foundCommand = true;
-                }
-                if (foundCommand) {
-                    options.push(element);
-                }
-            }
+        let installIndex = parsed.indexOf('install');
+        if (installIndex !== -1 && installIndex > 0) {
+            options = parsed.slice(installIndex - 1);
         }
 
         // get features first
-        if (options) {
+        if (options && options.length > 2) {
             features = this.parseFeature(options[2]);
         }
 
@@ -310,28 +318,45 @@ export class VcpkgDebugger {
             triplet = ' --triplet ' + this._defaultTriplet + ' ';
         }
 
-        let portFeatures = '';
+        let portWithFeatures = modifiedPorts;
         if (this._portFeatures && this._portFeatures.length) {
-            portFeatures = '[' + this._portFeatures.join(',') + '] ';
+            portWithFeatures = `"${modifiedPorts}[${this._portFeatures.join(',')}]"`;
         }
 
+        let cleanPipeCmd = '';
+        if (process.platform !== 'win32') {
+            cleanPipeCmd = 'rm -f /tmp/vcpkg_ext_portfile_dbg /tmp/vscode-vcpkg-cmakelists-debugger-pipe && ';
+        }
+
+        let cmakeConfigureDebugOpt = '';
+        if (this.hasCMakeListsBreakpoint()) {
+            const cmakePipe = process.platform === 'win32'
+                ? '\\\\.\\\\pipe\\\\vscode-vcpkg-cmake-debugger-pipe'
+                : '/tmp/vscode-vcpkg-cmakelists-debugger-pipe';
+            cmakeConfigureDebugOpt = ' --x-cmake-configure-debug ' + cmakePipe;
+        }
+
+        let connector = process.platform === 'win32' ? '; & ' : ' && ';
+
         let command =
+            cleanPipeCmd +
             '"${workspaceFolder}/vcpkg' +
             exeSuffix +
             '" remove ' +
             modifiedPorts +
             triplet +
-            ' --recurse;' +
-            ' & "${workspaceFolder}/vcpkg' +
+            ' --recurse' +
+            connector +
+            '"${workspaceFolder}/vcpkg' +
             exeSuffix +
             '" install ' +
-            modifiedPorts +
-            portFeatures +
+            portWithFeatures +
             ' ' +
             this._extraOptions.join(' ') +
             triplet +
-            ' --no-binarycaching --x-cmake-debug ' +
-            this.getDebuggerPipe();
+            ' --editable --no-binarycaching --x-cmake-debug ' +
+            this.getDebuggerPipe() +
+            cmakeConfigureDebugOpt;
 
         this._logMgr.logInfo('generateCommand: ' + command);
 
@@ -426,18 +451,14 @@ export class VcpkgDebugger {
             command: '',
             problemMatcher: [
                 {
-                    pattern: [
-                        {
-                            regexp: '',
-                            file: 1,
-                            location: 2,
-                            message: 3,
-                        },
-                    ],
+                    owner: 'custom',
+                    pattern: {
+                        regexp: '^$',
+                    },
                     background: {
                         activeOnStart: true,
-                        beginsPattern: '.',
-                        endsPattern: 'Waiting for debugger client to connect',
+                        beginsPattern: '^.*$',
+                        endsPattern: '^.*Waiting for debugger client to connect.*$',
                     },
                 },
             ],
